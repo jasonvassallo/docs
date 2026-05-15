@@ -1,0 +1,167 @@
+---
+title: "Separate audio into stems with POST /api/separate/{id}"
+description: "Use POST /api/separate/{id} to split a completed MLX AudioGen job into drums, bass, vocals, and other stems using the Demucs v4 HTDemucs model on-device."
+---
+
+Stem separation lets you split a completed audio generation into individual stems — drums, bass, vocals, and other — using Meta's HTDemucs v4 model running entirely on your Apple Silicon Mac via MLX. You submit a job ID for a completed generation, and the server runs Demucs on that audio and stores each stem as a downloadable sub-job.
+
+<Note>
+Demucs weights are downloaded automatically from HuggingFace on first use. No manual conversion step is required for the default `htdemucs` variant.
+</Note>
+
+---
+
+## POST /api/separate/{id}
+
+Separate the audio of a completed generation job into individual stems. The server runs HTDemucs v4 on the job's audio and registers each stem as its own downloadable job under the ID pattern `{job_id}_stem_{stem_name}`.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Job ID of a completed generation (`status: "done"`). Returns `HTTP 404` if the job does not exist and `HTTP 400` if the job has not yet completed or has no audio.
+</ParamField>
+
+### Response
+
+<ResponseField name="stems" type="object">
+  A dictionary mapping stem names to their stem job IDs. You can download each stem audio file using `GET /api/audio/{stem_id}`.
+
+  Keys depend on the Demucs model variant used:
+
+  - **`htdemucs`** (default): `drums`, `bass`, `vocals`, `other`
+  - **`htdemucs_6s`**: `drums`, `bass`, `other`, `vocals`, `guitar`, `piano`
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/separate/a3f1c2d4
+```
+
+```python Python
+import requests
+
+resp = requests.post("http://localhost:8420/api/separate/a3f1c2d4")
+resp.raise_for_status()
+stems = resp.json()["stems"]
+print(stems)
+# → {'drums': 'a3f1c2d4_stem_drums', 'bass': 'a3f1c2d4_stem_bass', ...}
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "stems": {
+    "drums": "a3f1c2d4_stem_drums",
+    "bass": "a3f1c2d4_stem_bass",
+    "vocals": "a3f1c2d4_stem_vocals",
+    "other": "a3f1c2d4_stem_other"
+  }
+}
+```
+
+---
+
+## Stems reference
+
+### htdemucs (default)
+
+| Stem | Description |
+|---|---|
+| `drums` | Percussion, including kicks, snares, hi-hats, and cymbals |
+| `bass` | Low-frequency bass instruments — electric bass, bass synth |
+| `vocals` | Lead and backing vocals |
+| `other` | All remaining instruments — guitar, keys, synths, strings |
+
+### htdemucs_6s (6-stem variant)
+
+| Stem | Description |
+|---|---|
+| `drums` | Percussion |
+| `bass` | Bass instruments |
+| `other` | Remaining elements not captured by the other stems |
+| `vocals` | Vocals |
+| `guitar` | Electric and acoustic guitar |
+| `piano` | Piano and keyboard instruments |
+
+---
+
+## Complete workflow
+
+A full end-to-end example: generate audio, wait for completion, separate into stems, and download each one.
+
+<CodeGroup>
+
+```bash curl
+# 1. Submit generation
+curl -X POST http://localhost:8420/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"model": "musicgen", "prompt": "full band rock track", "seconds": 20}'
+# → {"id": "a3f1c2d4", "status": "queued"}
+
+# 2. Poll until done
+curl http://localhost:8420/api/status/a3f1c2d4
+# → {"id": "a3f1c2d4", "status": "done", "progress": 1.0, ...}
+
+# 3. Separate into stems
+curl -X POST http://localhost:8420/api/separate/a3f1c2d4
+# → {"stems": {"drums": "a3f1c2d4_stem_drums", "bass": "a3f1c2d4_stem_bass", ...}}
+
+# 4. Download each stem
+curl -o drums.wav "http://localhost:8420/api/audio/a3f1c2d4_stem_drums?fmt=wav"
+curl -o bass.wav  "http://localhost:8420/api/audio/a3f1c2d4_stem_bass?fmt=wav"
+curl -o vocals.wav "http://localhost:8420/api/audio/a3f1c2d4_stem_vocals?fmt=wav"
+curl -o other.wav "http://localhost:8420/api/audio/a3f1c2d4_stem_other?fmt=wav"
+```
+
+```python Python
+import time
+import requests
+
+BASE = "http://localhost:8420"
+
+# 1. Submit generation
+job = requests.post(
+    f"{BASE}/api/generate",
+    json={
+        "model": "musicgen",
+        "prompt": "full band rock track",
+        "seconds": 20,
+    },
+).json()
+job_id = job["id"]
+print(f"Job submitted: {job_id}")
+
+# 2. Poll until done
+while True:
+    status = requests.get(f"{BASE}/api/status/{job_id}").json()
+    print(f"Status: {status['status']} ({status['progress']:.0%})")
+    if status["status"] == "done":
+        break
+    if status["status"] == "error":
+        raise RuntimeError(status["error"])
+    time.sleep(1.5)
+
+# 3. Separate into stems
+sep = requests.post(f"{BASE}/api/separate/{job_id}").json()
+stems = sep["stems"]
+print("Stems:", list(stems.keys()))
+
+# 4. Download each stem
+for stem_name, stem_id in stems.items():
+    audio = requests.get(f"{BASE}/api/audio/{stem_id}", params={"fmt": "wav"})
+    audio.raise_for_status()
+    filename = f"{stem_name}.wav"
+    with open(filename, "wb") as f:
+        f.write(audio.content)
+    print(f"Saved {filename}")
+```
+
+</CodeGroup>
+
+<Warning>
+Stem separation requires the job to be in `"done"` status and to have audio data still in memory. Jobs are cleaned up automatically after 5 minutes of inactivity when the job limit (100) is reached. Download your audio promptly after generation if you plan to separate stems.
+</Warning>

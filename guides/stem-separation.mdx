@@ -1,0 +1,98 @@
+---
+title: "Separate audio into stems with Demucs on Apple Silicon"
+description: "Split any stereo mix into drums, bass, vocals, and other stems using the MLX port of Meta's HTDemucs v4 — fully on-device with no cloud required."
+---
+
+MLX AudioGen includes a native MLX port of Meta's HTDemucs v4, which separates a stereo audio mix into individual stems entirely on your Mac's Metal GPU. The standard `htdemucs` variant produces four stems — drums, bass, vocals, and other — at 44.1 kHz. The `htdemucs_6s` variant adds piano and guitar for six stems. No cloud upload, no round-trips: everything runs on device.
+
+You can separate stems through the web UI, the HTTP API, or by converting the weights manually for local use.
+
+## Variant overview
+
+| Variant | Stems | Output | Notes |
+|---------|-------|--------|-------|
+| `htdemucs` | drums, bass, vocals, other | 44.1 kHz stereo | Standard 4-stem separation |
+| `htdemucs_6s` | drums, bass, vocals, other, piano, guitar | 44.1 kHz stereo | 6-stem, better for mixed ensembles |
+
+## Via the web UI
+
+The web UI provides a point-and-click interface for stem separation after generation.
+
+<Steps>
+  <Step title="Launch the server">
+    Start the server with the web UI:
+
+    ```bash
+    pip install mlx-audiogen[server]
+    mlx-audiogen-app
+    ```
+
+    This opens `http://localhost:8420` in your browser and auto-discovers any converted models in your default weights directory.
+  </Step>
+
+  <Step title="Generate or load audio">
+    Generate audio using any model (MusicGen or Stable Audio), or use the generation history to select a previously generated file.
+  </Step>
+
+  <Step title="Separate stems">
+    Click **Separate Stems** on any completed generation. The UI sends a separation request to the server and displays color-coded inline audio players for each stem (drums, bass, vocals, other) once processing is complete.
+
+    Demucs weights auto-download from HuggingFace if no local weights are found.
+  </Step>
+</Steps>
+
+## Via the HTTP API
+
+If you're integrating with an external tool or script, use the REST API directly.
+
+<Steps>
+  <Step title="Generate audio and get a job ID">
+    Submit a generation request and note the job ID returned:
+
+    ```bash
+    curl -X POST http://localhost:8420/api/generate \
+      -H "Content-Type: application/json" \
+      -d '{"model": "musicgen", "prompt": "funk bass groove", "seconds": 10}'
+    ```
+
+    The response includes a `job_id`. Poll `/api/status/{id}` until status is `done`.
+  </Step>
+
+  <Step title="Request stem separation">
+    Pass the completed job ID to the separation endpoint:
+
+    ```bash
+    curl -X POST http://localhost:8420/api/separate/{id}
+    ```
+
+    Replace `{id}` with the job ID from step 1. The server runs HTDemucs on the generated audio and returns paths or data for each stem.
+
+    <Note>
+      Demucs weights are downloaded automatically from [HuggingFace](https://huggingface.co/jasonvassallo/demucs-htdemucs-mlx) on first separation request. Subsequent calls use the cached weights.
+    </Note>
+  </Step>
+</Steps>
+
+## Convert Demucs weights manually
+
+If you want to pre-convert the weights before your first use — for example, in an offline environment — run the converter yourself. This step is otherwise optional.
+
+```bash
+pip install mlx-audiogen[convert]
+
+# Convert 4-stem variant
+mlx-audiogen-convert --model htdemucs --output ./converted/demucs-htdemucs
+
+# Convert 6-stem variant
+mlx-audiogen-convert --model htdemucs_6s --output ./converted/demucs-htdemucs-6s
+```
+
+<Info>
+  Weight conversion requires PyTorch (`pip install mlx-audiogen[convert]`). After conversion, PyTorch is not needed for inference — all separation inference runs on MLX.
+</Info>
+
+## Output format
+
+Each stem is produced as a separate 44.1 kHz stereo WAV file at the same length as the original audio. Stems can be downloaded individually via `GET /api/audio/{stem_id}` after calling `POST /api/separate/{id}`.
+
+The `htdemucs` variant is the best starting point for most audio. Use `htdemucs_6s` if you specifically need guitar and piano isolated from the rest of the mix.

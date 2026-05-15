@@ -1,0 +1,104 @@
+---
+title: "Connect MLX AudioGen to Ableton Live via Max for Live"
+description: "Use the Node for Max HTTP client to generate AI audio from inside Ableton Live — type a prompt, click Generate, and drag the WAV to any track."
+---
+
+The MLX AudioGen Max for Live device is a lightweight Node for Max script (`m4l/mlx-audiogen.js`) that connects Ableton Live directly to the mlx-audiogen HTTP server. Load it onto a MIDI track, type a prompt in the device UI, and the generated WAV is saved to your system's temp directory and output as a file path — ready to drag onto any track in your session.
+
+## Setup
+
+<Steps>
+  <Step title="Start the server">
+    Open a terminal and start the mlx-audiogen server with at least one converted model:
+
+    ```bash
+    mlx-audiogen-server --weights-dir ./converted/musicgen-small --port 8420
+    ```
+
+    Leave this terminal open while you work in Ableton. The device connects to `127.0.0.1:8420` by default.
+  </Step>
+
+  <Step title="Build the .amxd device (first time only)">
+    The Max for Live device must be built once in Max before you can use it in Ableton:
+
+    1. Open Max and create a new **Max for Live Audio Effect**.
+    2. Add a `node.script mlx-audiogen.js` object and point it at `m4l/mlx-audiogen.js` from the repository.
+    3. Route the outlets to UI elements (`live.text`, `live.dial`, etc.).
+    4. **Freeze** the device and save it as `mlx-audiogen.amxd`.
+  </Step>
+
+  <Step title="Load the device in Ableton Live">
+    Create a new MIDI track in your Ableton Live session. Drag the `mlx-audiogen.amxd` device onto the track. The device loads, connects to the server, and outputs `Ready` to the status display.
+  </Step>
+
+  <Step title="Generate audio">
+    Type a text prompt in the device's prompt field and click **Generate** (or send a `generate` message from a Max patch). The device:
+
+    1. Posts your prompt and current parameters to `/api/generate`.
+    2. Polls `/api/status/{id}` every 500 ms and updates the progress display.
+    3. Downloads the completed WAV from `/api/audio/{id}` to your OS temp directory (`mlx-audiogen/` folder).
+    4. Outputs the file path so you can drag it to any track in your session.
+  </Step>
+</Steps>
+
+<Note>
+Generated WAVs are written to your OS temp directory under `mlx-audiogen/`, for example `/var/folders/.../mlx-audiogen/musicgen_abc123_1715000000000.wav` on macOS. The files persist until you clear your temp directory.
+</Note>
+
+## Message reference
+
+Send these messages to the device to control generation. All numeric inputs are clamped to valid ranges automatically.
+
+### Input messages (Max → device)
+
+| Message | Example | Description |
+|---|---|---|
+| `generate <prompt>` | `generate happy rock song` | Start generation with the current parameter state. The prompt is everything after `generate`. |
+| `model <type>` | `model stable_audio` | Switch the active model. Use `musicgen` or `stable_audio`. |
+| `seconds <n>` | `seconds 10` | Set generation duration in seconds. Clamped to 0.1–300. |
+| `temperature <n>` | `temperature 0.8` | Sampling temperature for MusicGen (creativity). Minimum 0.01. |
+| `top_k <n>` | `top_k 100` | Top-k sampling candidates for MusicGen. Minimum 1. |
+| `guidance <n>` | `guidance 5.0` | Classifier-free guidance coefficient. Minimum 0. |
+| `steps <n>` | `steps 16` | Diffusion steps for Stable Audio. Clamped to 1–1000. |
+| `cfg_scale <n>` | `cfg_scale 7.0` | CFG guidance scale for Stable Audio. Minimum 0. |
+| `seed <n>` | `seed 42` | Random seed for reproducibility. Use `-1` for a random seed each run. |
+| `style_audio <path>` | `style_audio /path/ref.wav` | Absolute path to a style reference audio file (MusicGen Style). |
+| `style_coef <n>` | `style_coef 3.0` | Style conditioning coefficient. Default 5.0, minimum 0. |
+| `melody <path>` | `melody /path/input.wav` | Absolute path to a melody reference audio file (MusicGen Melody). |
+| `server <host:port>` | `server 192.168.1.10:8420` | Change the server address. Default is `127.0.0.1:8420`. |
+| `list_models` | `list_models` | Fetch the list of available models from the server and send it to the `models` outlet. |
+
+### Output messages (device → Max)
+
+| Outlet | Data | Description |
+|---|---|---|
+| `status` | text | Human-readable status for display in the device UI (e.g., `Ready`, `Generating... (job-id)`, `Done!`). |
+| `progress` | 0–100 | Generation progress percentage. Updates every 500 ms while a job is running. |
+| `audio` | filepath | Absolute path to the generated WAV file. Output once when the download completes. |
+| `error` | text | Error message if generation fails or the server cannot be reached. |
+| `models` | JSON string | JSON array of available model objects, returned in response to `list_models`. |
+
+## Default parameter values
+
+| Parameter | Default |
+|---|---|
+| Model | `musicgen` |
+| Duration | `5.0` s |
+| Temperature | `1.0` |
+| Top-k | `250` |
+| Guidance coefficient | `3.0` |
+| Diffusion steps | `8` |
+| CFG scale | `6.0` |
+| Seed | `-1` (random) |
+| Style coefficient | `5.0` |
+| Server | `127.0.0.1:8420` |
+
+<Tip>
+To connect to a remote mlx-audiogen server — for example, a Mac Mini running on your local network — send a `server` message with the remote address:
+
+```
+server 192.168.1.10:8420
+```
+
+The device reconnects immediately and routes all subsequent requests to that host.
+</Tip>

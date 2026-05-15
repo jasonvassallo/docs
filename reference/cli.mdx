@@ -1,0 +1,264 @@
+---
+title: 'mlx-audiogen CLI reference: generate and server commands'
+description: 'Complete reference for mlx-audiogen, mlx-audiogen-server, and mlx-audiogen-app: every flag and default for MusicGen and Stable Audio generation.'
+---
+
+MLX AudioGen ships three CLI commands: `mlx-audiogen` for generating audio from a text prompt, `mlx-audiogen-server` for running the HTTP API, and `mlx-audiogen-app` for launching the server with the web UI. This page documents every flag, its default value, and which model each flag applies to.
+
+---
+
+## mlx-audiogen
+
+`mlx-audiogen` generates a WAV file from a text prompt. You must pass `--model` and `--prompt`; everything else has a sensible default.
+
+```bash
+mlx-audiogen --model musicgen --prompt "happy upbeat rock song" --seconds 10
+```
+
+### Common parameters
+
+<ParamField path="--model" type="string" required>
+  Model to use for generation. Must be `musicgen` or `stable_audio`. Use `musicgen` for any MusicGen variant (mono, stereo, melody, style). Use `stable_audio` for Stable Audio Open small or 1.0.
+</ParamField>
+
+<ParamField path="--prompt" type="string" required>
+  Text description of the audio you want to generate. Keep prompts under 2,000 characters — the T5 tokenizer truncates at 512 tokens.
+</ParamField>
+
+<ParamField path="--seconds" type="float" default="5.0">
+  Duration of the generated audio in seconds. MusicGen supports up to approximately 30 seconds; Stable Audio supports up to approximately 47 seconds.
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Path for the output WAV file. If not specified, the file is saved as `musicgen_output.wav` or `stable_audio_output.wav` in the current directory.
+</ParamField>
+
+<ParamField path="--seed" type="integer">
+  Random seed for reproducibility. When not set, a random seed is used and each run produces different output. Set a fixed seed to reproduce a result exactly.
+</ParamField>
+
+<ParamField path="--weights-dir" type="string">
+  Path to a directory of converted MLX weights. If not specified, the model auto-downloads pre-converted weights from HuggingFace on first use.
+</ParamField>
+
+<ParamField path="--lora" type="string">
+  Name of a LoRA adapter stored in `~/.mlx-audiogen/loras/<name>/`. Applies to MusicGen only. Use `--lora-path` to specify an adapter outside the default directory.
+</ParamField>
+
+<ParamField path="--lora-path" type="string">
+  Explicit filesystem path to a LoRA adapter directory. Takes precedence over `--lora` when both are provided. Applies to MusicGen only.
+</ParamField>
+
+### Model-specific parameters
+
+<Tabs>
+  <Tab title="MusicGen">
+    These flags only affect MusicGen generation. They are ignored when `--model stable_audio` is used.
+
+    <ParamField path="--temperature" type="float" default="1.0">
+      Sampling temperature. Higher values (e.g., 1.5) produce more creative, varied output. Lower values (e.g., 0.7) produce more predictable results. Must be greater than zero.
+    </ParamField>
+
+    <ParamField path="--top-k" type="integer" default="250">
+      Number of top token candidates to sample from at each step. Must be at least 1.
+    </ParamField>
+
+    <ParamField path="--top-p" type="float" default="0.0">
+      Nucleus sampling threshold. When set to `0.0`, top-p sampling is disabled and only `--top-k` is used.
+    </ParamField>
+
+    <ParamField path="--guidance-coef" type="float" default="3.0">
+      Classifier-free guidance scale. Higher values push the output to follow the prompt more closely at the cost of diversity. Must be non-negative.
+    </ParamField>
+
+    <ParamField path="--melody" type="string">
+      Path to a WAV file to use for melody conditioning. Melody variants only. The pipeline extracts a 12-bin chromagram from the file and uses it to guide pitch contour in the generated output. Melody variants also work without this flag for text-only generation.
+    </ParamField>
+
+    <ParamField path="--style-audio" type="string">
+      Path to a WAV file to use as a timbre and texture reference. Style variants only (`facebook/musicgen-style`). The pipeline uses MERT features and dual classifier-free guidance to blend the reference style with the text prompt.
+    </ParamField>
+
+    <ParamField path="--style-coef" type="float" default="5.0">
+      Dual-CFG text influence coefficient for style conditioning. Controls how strongly the text prompt influences the output relative to the style reference. Must be non-negative. Only meaningful when `--style-audio` is set.
+    </ParamField>
+
+    **Examples:**
+
+    ```bash
+    # Basic generation
+    mlx-audiogen --model musicgen --prompt "lo-fi hip hop, chill, 80 BPM" --seconds 15
+
+    # Melody conditioning
+    mlx-audiogen \
+      --model musicgen \
+      --prompt "orchestral arrangement with strings" \
+      --melody my_humming.wav \
+      --seconds 10
+
+    # Style conditioning
+    mlx-audiogen \
+      --model musicgen \
+      --prompt "upbeat electronic dance music" \
+      --style-audio reference_track.wav \
+      --style-coef 5.0 \
+      --seconds 10
+
+    # Reproducible output with fixed seed
+    mlx-audiogen \
+      --model musicgen \
+      --prompt "ambient drone pad" \
+      --seed 42 \
+      --temperature 0.9 \
+      --guidance-coef 4.0 \
+      --seconds 20
+    ```
+  </Tab>
+  <Tab title="Stable Audio">
+    These flags only affect Stable Audio generation. They are ignored when `--model musicgen` is used.
+
+    <ParamField path="--negative-prompt" type="string" default='""'>
+      Negative prompt for classifier-free guidance. Describe characteristics you want to avoid (e.g., `"distorted, clipping, noise"`).
+    </ParamField>
+
+    <ParamField path="--steps" type="integer" default="8">
+      Number of diffusion sampling steps. More steps generally produce higher-quality output but take longer. Valid range is 1–1000.
+    </ParamField>
+
+    <ParamField path="--cfg-scale" type="float" default="6.0">
+      Classifier-free guidance scale. Higher values follow the prompt more strictly. Must be non-negative.
+    </ParamField>
+
+    <ParamField path="--sampler" type="string" default="euler">
+      ODE sampler to use for diffusion. Choose `euler` (fast, recommended for low step counts) or `rk4` (Runge-Kutta 4th order, more accurate at higher step counts).
+    </ParamField>
+
+    <ParamField path="--reference-audio" type="string">
+      Path to a reference WAV file for audio-to-audio generation. The pipeline uses the reference as a starting point and deviates from it based on `--reference-strength`.
+    </ParamField>
+
+    <ParamField path="--reference-strength" type="float" default="0.7">
+      Controls how much the output deviates from the reference audio. `0.0` copies the reference almost exactly; `1.0` ignores it entirely. Must be between 0.0 and 1.0.
+    </ParamField>
+
+    **Examples:**
+
+    ```bash
+    # Basic generation
+    mlx-audiogen \
+      --model stable_audio \
+      --prompt "cinematic orchestral swell, dramatic, 4K" \
+      --seconds 20
+
+    # Negative prompt to exclude unwanted characteristics
+    mlx-audiogen \
+      --model stable_audio \
+      --prompt "warm analog synthesizer pad" \
+      --negative-prompt "digital, harsh, distorted" \
+      --steps 20 \
+      --cfg-scale 7.0 \
+      --seconds 15
+
+    # Audio-to-audio with reference
+    mlx-audiogen \
+      --model stable_audio \
+      --prompt "jazz piano, relaxed, late night" \
+      --reference-audio existing_piano.wav \
+      --reference-strength 0.6 \
+      --seconds 10
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## mlx-audiogen-server
+
+`mlx-audiogen-server` starts the FastAPI HTTP server that powers the web UI, DAW plugins, and Max for Live integration. You must pass at least one `--weights-dir`.
+
+```bash
+mlx-audiogen-server --weights-dir ./converted/musicgen-small --port 8420
+```
+
+<ParamField path="--weights-dir" type="string" required>
+  Path to a converted weights directory. Pass this flag multiple times to register multiple models. The server uses an LRU cache to keep the two most recently used models loaded simultaneously.
+
+  ```bash
+  mlx-audiogen-server \
+    --weights-dir ./converted/musicgen-small \
+    --weights-dir ./converted/stable-audio
+  ```
+</ParamField>
+
+<ParamField path="--port" type="integer" default="8420">
+  Port the server listens on.
+</ParamField>
+
+<ParamField path="--host" type="string" default="127.0.0.1">
+  Host address the server binds to. The default binds to localhost only. Set to `0.0.0.0` to expose the server to your local network, for example to reach it from an iPad or another Mac on the same network.
+</ParamField>
+
+<ParamField path="--max-cache" type="integer" default="2">
+  Maximum number of model pipelines to keep loaded in memory at once. When a new model is needed and the cache is full, the least recently used pipeline is evicted.
+</ParamField>
+
+<ParamField path="--open" type="boolean">
+  Open the web UI in your default browser automatically after the server starts.
+</ParamField>
+
+<Note>
+  The server binds to `127.0.0.1` by default and is only reachable from your local machine. To allow connections from other devices, pass `--host 0.0.0.0`. Be aware that this exposes the API to anyone on your network.
+</Note>
+
+<CodeGroup>
+  ```bash Single model
+  mlx-audiogen-server \
+    --weights-dir ./converted/musicgen-small \
+    --port 8420 \
+    --open
+  ```
+
+  ```bash Multiple models
+  mlx-audiogen-server \
+    --weights-dir ./converted/musicgen-small \
+    --weights-dir ./converted/stable-audio \
+    --port 8420
+  ```
+
+  ```bash Remote access
+  mlx-audiogen-server \
+    --weights-dir ./converted/musicgen-small \
+    --host 0.0.0.0 \
+    --port 8420
+  ```
+</CodeGroup>
+
+---
+
+## mlx-audiogen-app
+
+`mlx-audiogen-app` is a one-command launcher that auto-discovers all converted model directories and opens the web UI. It searches `./converted/` in the current directory and `~/.mlx-audiogen/models/` for any directory containing `config.json` or `.safetensors` files.
+
+```bash
+mlx-audiogen-app
+```
+
+<ParamField path="--converted-dir" type="string">
+  Directory containing converted model folders. Defaults to `./converted` in the current working directory and `~/.mlx-audiogen/models/`.
+</ParamField>
+
+<ParamField path="--port" type="integer" default="8420">
+  Port the server listens on.
+</ParamField>
+
+<ParamField path="--host" type="string" default="127.0.0.1">
+  Host address. Set to `0.0.0.0` for remote access.
+</ParamField>
+
+<ParamField path="--max-cache" type="integer" default="3">
+  Maximum number of model pipelines to keep loaded simultaneously. Defaults to 3 (higher than `mlx-audiogen-server` since all models are registered at launch).
+</ParamField>
+
+<Tip>
+  `mlx-audiogen-app` always opens the web UI automatically after startup. Use `mlx-audiogen-server` directly if you want server-only mode without a browser window.
+</Tip>

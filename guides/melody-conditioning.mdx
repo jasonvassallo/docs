@@ -1,0 +1,106 @@
+---
+title: "Condition MusicGen generation on a melody reference audio"
+description: "Provide a WAV file as a melody reference and let MusicGen extract its pitch contour to guide generation while you control the arrangement via text prompt."
+---
+
+Melody conditioning lets you hum, whistle, or play a melody into a WAV file and have MusicGen follow its pitch contour in the output. The model extracts a 12-bin chromagram — a one-hot pitch class per frame — from your reference audio and uses it as additional cross-attention conditioning alongside your text prompt. You control the arrangement, instruments, and style through text; the model uses your melody to stay on pitch.
+
+This requires a melody-variant model: `facebook/musicgen-melody` (base) or `facebook/musicgen-melody-large`. Melody variants work for text-only generation too — the `--melody` flag is optional.
+
+## Workflow
+
+<Steps>
+  <Step title="Install the convert extra">
+    You need the convert extra to download and convert model weights from HuggingFace. Skip this step if you already have it installed.
+
+    ```bash
+    pip install mlx-audiogen[convert]
+    ```
+  </Step>
+
+  <Step title="Convert a melody variant">
+    Convert the melody model weights to MLX format. This is a one-time step per variant.
+
+    <CodeGroup>
+
+    ```bash base
+    mlx-audiogen-convert \
+      --model facebook/musicgen-melody \
+      --output ./converted/musicgen-melody
+    ```
+
+    ```bash large
+    mlx-audiogen-convert \
+      --model facebook/musicgen-melody-large \
+      --output ./converted/musicgen-melody-large
+    ```
+
+    </CodeGroup>
+
+    Weights download from HuggingFace automatically. The melody base variant is sharded safetensors; the large variant is also sharded safetensors.
+  </Step>
+
+  <Step title="Prepare your melody recording">
+    Record your melody as a WAV file. Humming, whistling, or playing a single melodic line on any instrument all work. The model extracts pitch class information (the chromagram), so absolute pitch and timbre do not matter — only the relative pitch sequence does.
+
+    <Tip>
+      Record in a quiet environment with minimal background noise. The model extracts pitch information frame by frame, so a clean, dry recording with the melody clearly in the foreground gives the best results. Noisy or reverberant recordings can produce imprecise pitch tracking.
+    </Tip>
+  </Step>
+
+  <Step title="Generate with melody conditioning">
+    Pass your melody WAV with `--melody` and describe the arrangement you want in `--prompt`:
+
+    ```bash
+    mlx-audiogen \
+      --model musicgen \
+      --weights-dir ./converted/musicgen-melody \
+      --prompt "orchestral arrangement with strings" \
+      --melody my_humming.wav \
+      --seconds 10 \
+      --output orchestral.wav
+    ```
+
+    The pipeline extracts the chromagram from `my_humming.wav` and uses it alongside the text conditioning for cross-attention in the decoder.
+  </Step>
+</Steps>
+
+## Parameters
+
+<ParamField path="--melody" type="string">
+  Path to a WAV file to use as the melody reference. The pipeline accepts any WAV file and resamples internally as needed. Only valid when using a melody model variant.
+</ParamField>
+
+<ParamField path="--prompt" type="string" required>
+  Text description of the arrangement. Use this to specify instruments, genre, texture, and tempo. The melody contour from your reference file guides pitch; the text prompt guides everything else.
+</ParamField>
+
+<ParamField path="--seconds" type="float" default="5.0">
+  Duration in seconds. MusicGen produces reliable output up to approximately 30 seconds.
+</ParamField>
+
+<ParamField path="--weights-dir" type="string">
+  Path to the converted melody variant weights. You must point this at a melody variant directory — a standard MusicGen directory will not have the `audio_enc_to_dec_proj` weights required for melody conditioning.
+</ParamField>
+
+## How melody conditioning works
+
+The model extracts pitch class information — which of the 12 musical notes (C, C#, D, ... B) is active at each point in time — from your reference audio and uses it as additional conditioning alongside your text prompt. The result is audio that follows the melodic contour of your reference while sounding like the instruments and style described in your prompt.
+
+Because the model works from pitch classes rather than raw audio, the timbre and recording quality of your reference do not affect the output — only the pitch sequence matters. A rough smartphone recording of humming works as well as a clean studio take.
+
+## Text-only generation with melody variants
+
+You do not need to provide a `--melody` file. Melody variants also work as standard text-to-audio models:
+
+```bash
+mlx-audiogen \
+  --model musicgen \
+  --weights-dir ./converted/musicgen-melody \
+  --prompt "upbeat folk guitar" \
+  --seconds 15
+```
+
+<Note>
+  Melody variants are slightly larger than standard variants due to the additional `audio_enc_to_dec_proj` projection weights. The large melody variant requires more RAM than the standard large variant.
+</Note>

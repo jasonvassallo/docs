@@ -1,0 +1,97 @@
+---
+title: "Use MLX AudioGen as a VST3 or AU plugin in your DAW"
+description: "Build and install the native JUCE plugin to generate AI audio directly inside Ableton Live, Logic Pro, or any VST3/AU-compatible DAW."
+---
+
+The MLX AudioGen native plugin brings text-to-audio generation directly into your DAW session. Built with JUCE, it installs as a standard VST3 or Audio Unit and connects to the mlx-audiogen HTTP server running on your Mac. You can type a prompt, trigger generation, audition A/B/C/D variations, and drop the result onto a track — without switching windows.
+
+<Warning>
+The plugin requires building from source. There is no pre-built binary available. You need Xcode command-line tools and CMake installed before you begin.
+</Warning>
+
+## Build and install
+
+<Steps>
+  <Step title="Clone JUCE (first time only)">
+    From the root of the mlx-audiogen repository, initialize the JUCE submodule:
+
+    ```bash
+    cd plugin && git submodule update --init
+    ```
+
+    This downloads the JUCE framework into the `plugin/` directory. You only need to do this once.
+  </Step>
+
+  <Step title="Build the plugin">
+    Configure and build in Release mode:
+
+    ```bash
+    cmake -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build --config Release
+    ```
+
+    The build step compiles both the VST3 and Audio Unit targets and installs them automatically to:
+
+    - `~/Library/Audio/Plug-Ins/VST3/` (VST3)
+    - `~/Library/Audio/Plug-Ins/Components/` (AU)
+  </Step>
+
+  <Step title="Scan for the plugin in your DAW">
+    After the build completes, tell your DAW to scan for new plugins:
+
+    - **Ableton Live:** open Preferences → Plugins, then click **Rescan**.
+    - **Logic Pro:** Logic rescans AU plugins automatically on next launch. To force a rescan, hold **Shift+Option** while opening Logic.
+    - **Other DAWs:** consult your DAW's plugin management settings for the VST3 or AU scan path.
+  </Step>
+
+  <Step title="Load the plugin onto a track">
+    Add the plugin to an audio or instrument track in your DAW. Once loaded, it automatically connects to `http://localhost:8420` — the default mlx-audiogen server address.
+  </Step>
+
+  <Step title="Start generating">
+    Type a prompt in the plugin UI and click **Generate**. The plugin submits the request to the server, shows real-time progress, and drops the audio into the track when done. Use **Keep** to commit the result or **Discard** to try again.
+  </Step>
+</Steps>
+
+<Note>
+The plugin connects to the mlx-audiogen HTTP server at `localhost:8420`. If the server is not already running, the plugin will attempt to launch it automatically. To start the server manually before loading the plugin:
+
+```bash
+mlx-audiogen-server --weights-dir ./converted/musicgen-small --port 8420
+```
+</Note>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Auto server launch">
+    The plugin detects whether the server is running and starts it automatically if not, so you don't need to manage a separate terminal window during your session.
+  </Card>
+  <Card title="Local and remote server">
+    Connect to a local server at `localhost:8420` or point the plugin at a remote mlx-audiogen server — including servers behind Cloudflare Access authentication.
+  </Card>
+  <Card title="Model auto-discovery">
+    The plugin queries `/api/models` on connect and populates the model selector with all models the server has loaded. Switch models without leaving the DAW.
+  </Card>
+  <Card title="DAW BPM sync">
+    Generation duration can lock to the host DAW tempo. The plugin reads the DAW's current BPM and calculates the number of audio samples needed to fill a target number of bars.
+  </Card>
+  <Card title="MIDI trigger">
+    Trigger generation from a MIDI note or pad. Assign a MIDI note in the plugin settings and fire it from a controller or clip to start a generation pass.
+  </Card>
+  <Card title="A/B/C/D variations">
+    Generate up to four variations of the same prompt in one pass. Audition each variation and keep the one that fits best — or discard all and regenerate.
+  </Card>
+  <Card title="Keep / discard workflow">
+    Every generated clip is held in a staging buffer. You explicitly keep or discard it before it commits to the track, so accidental generations never overwrite work.
+  </Card>
+  <Card title="Beat-grid trimming">
+    After generation, trim the clip to the nearest beat boundary so it lines up cleanly with your session grid.
+  </Card>
+  <Card title="Effects chain">
+    Apply a built-in effects chain to generated audio before it lands on the track — without needing additional DAW plugins for basic processing.
+  </Card>
+  <Card title="Push 2 compatibility">
+    The plugin exposes all parameters via APVTS (AudioProcessorValueTreeState), making every control addressable by Ableton Push 2 and other parameter-mapped controllers.
+  </Card>
+</CardGroup>

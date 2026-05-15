@@ -1,0 +1,133 @@
+---
+title: "Generate music with MusicGen on Apple Silicon Macs"
+description: "Use MusicGen's autoregressive text-to-audio pipeline to generate 32 kHz WAV files locally on your Mac with a single CLI command and no cloud API."
+---
+
+MusicGen is an autoregressive transformer model that converts a text prompt into a 32 kHz WAV file — entirely on your Mac's Metal GPU. It uses a T5 encoder to understand your prompt, an autoregressive transformer to generate audio tokens, and EnCodec to decode those tokens into audio. You get a copy-pasteable CLI command, no cloud API required, and models that auto-download from HuggingFace on first use.
+
+## Basic usage
+
+Pass `--model musicgen` with a descriptive `--prompt` and a duration in seconds:
+
+```bash
+mlx-audiogen --model musicgen --prompt "upbeat jazz piano trio" --seconds 15
+```
+
+The first run downloads the model weights automatically. Subsequent runs use the cached weights.
+
+## Parameters
+
+<ParamField path="--prompt" type="string" required>
+  Text description of the audio you want to generate. Be descriptive — include genre, instruments, mood, and tempo. Longer, specific prompts generally produce better results.
+</ParamField>
+
+<ParamField path="--seconds" type="float" default="5.0">
+  Duration of the generated audio in seconds. MusicGen produces reliable output up to approximately 30 seconds. Quality can degrade beyond that limit.
+</ParamField>
+
+<ParamField path="--output" type="string" default="musicgen_output.wav">
+  Path for the output WAV file. If omitted, the file is saved as `musicgen_output.wav` in the current directory.
+</ParamField>
+
+<ParamField path="--seed" type="integer">
+  Random seed for reproducible output. Omit for a random result each time. Setting the same seed with the same prompt and parameters produces identical output.
+</ParamField>
+
+<ParamField path="--temperature" type="float" default="1.0">
+  Sampling temperature. Higher values (e.g. `1.4`) make output more varied and experimental. Lower values (e.g. `0.7`) make it more predictable and prompt-adherent.
+</ParamField>
+
+<ParamField path="--top-k" type="integer" default="250">
+  Number of top token candidates considered at each sampling step. Lower values constrain generation; higher values allow more variety.
+</ParamField>
+
+<ParamField path="--guidance-coef" type="float" default="3.0">
+  Classifier-free guidance scale. Higher values make the output follow your prompt more strictly. Lower values give the model more creative freedom.
+</ParamField>
+
+<ParamField path="--weights-dir" type="string">
+  Path to a local directory of pre-converted MLX weights. Omit this flag to auto-download weights from HuggingFace on first use.
+</ParamField>
+
+## Choosing a variant
+
+MusicGen comes in three sizes. The `--weights-dir` flag points to a specific variant's weights. If you omit it, the small variant is downloaded by default.
+
+| Variant | Quality | Speed | Best for |
+|---------|---------|-------|----------|
+| `musicgen-small` | Good | Fastest | Iteration, previews |
+| `musicgen-medium` | Better | Moderate | Most use cases |
+| `musicgen-large` | Best | Slowest | Final renders |
+
+To convert a specific variant locally before generating:
+
+<CodeGroup>
+
+```bash small
+mlx-audiogen-convert --model facebook/musicgen-small --output ./converted/musicgen-small
+mlx-audiogen --model musicgen --weights-dir ./converted/musicgen-small \
+  --prompt "upbeat jazz piano trio" --seconds 15
+```
+
+```bash medium
+mlx-audiogen-convert --model facebook/musicgen-medium --output ./converted/musicgen-medium
+mlx-audiogen --model musicgen --weights-dir ./converted/musicgen-medium \
+  --prompt "upbeat jazz piano trio" --seconds 15
+```
+
+```bash large
+mlx-audiogen-convert --model facebook/musicgen-large --output ./converted/musicgen-large
+mlx-audiogen --model musicgen --weights-dir ./converted/musicgen-large \
+  --prompt "upbeat jazz piano trio" --seconds 15
+```
+
+</CodeGroup>
+
+<Note>
+  The medium and large variants use `pytorch_model.bin` weight files. Install the convert extra first: `pip install mlx-audiogen[convert]`.
+</Note>
+
+## Stereo output
+
+MusicGen stereo variants use 8 codebooks instead of 4, producing true stereo WAV output at 32 kHz. Use the same `--model musicgen` flag — the stereo behavior is determined by which weights you point to.
+
+```bash
+mlx-audiogen-convert --model facebook/musicgen-stereo-small \
+  --output ./converted/musicgen-stereo-small
+
+mlx-audiogen --model musicgen \
+  --weights-dir ./converted/musicgen-stereo-small \
+  --prompt "cinematic orchestral swell" \
+  --seconds 20 \
+  --output cinematic.wav
+```
+
+Stereo variants are available in small, medium, and large sizes.
+
+## Tips for better results
+
+<AccordionGroup>
+  <Accordion title="Prompt writing">
+    Include genre, instruments, tempo, mood, and setting in your prompt. "Upbeat jazz piano trio with walking bass and brushed snare, 120 BPM" produces more targeted output than "jazz".
+  </Accordion>
+  <Accordion title="Temperature tuning">
+    Start at the default (`1.0`). If results feel too random or incoherent, lower to `0.7–0.9`. If they feel too repetitive or safe, raise to `1.1–1.4`.
+  </Accordion>
+  <Accordion title="Guidance coefficient">
+    Raise `--guidance-coef` to `5.0–7.0` when you need output that closely matches specific instruments or styles in your prompt. Lower it to `1.5–2.0` for more open-ended, ambient generation.
+  </Accordion>
+  <Accordion title="Reproducibility">
+    Pin a `--seed` value once you find a generation you like. You can then vary only temperature or guidance to explore the neighborhood of that result.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Melody conditioning" icon="music" href="/guides/melody-conditioning">
+    Hum or whistle a melody and use it to guide MusicGen's pitch output.
+  </Card>
+  <Card title="Style conditioning" icon="sliders" href="/guides/style-conditioning">
+    Provide a reference track to capture its timbre and texture.
+  </Card>
+</CardGroup>

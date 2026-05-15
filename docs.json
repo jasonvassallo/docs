@@ -1,0 +1,78 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "luma",
+  "name": "MLX AudioGen",
+  "favicon": "https://media.brand.dev/aef923c5-713a-4a4c-9df8-656dd3394c51.jpg",
+  "colors": {
+    "primary": "#f8c61e",
+    "light": "#fbf9ec",
+    "dark": "#4e412f"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/jasonvassallo/mlx-audiogen"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation",
+              "models"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/musicgen",
+              "guides/stable-audio",
+              "guides/melody-conditioning",
+              "guides/style-conditioning",
+              "guides/stem-separation",
+              "guides/lora"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/web-ui",
+              "integrations/vst-au-plugin",
+              "integrations/max-for-live"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/cli",
+              "reference/conversion",
+              "reference/configuration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "HTTP Server",
+            "pages": [
+              "api/overview",
+              "api/generation",
+              "api/models",
+              "api/prompts",
+              "api/presets",
+              "api/stems"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

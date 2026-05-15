@@ -1,0 +1,431 @@
+---
+title: "Submit audio generation jobs with POST /api/generate"
+description: "Submit text-to-audio generation jobs, poll status with real-time progress, and download WAV, AIFF, FLAC, or MIDI output from the MLX AudioGen API."
+---
+
+Audio generation in MLX AudioGen is asynchronous. You submit a request to `POST /api/generate`, receive a `job_id` immediately, then poll `GET /api/status/{id}` until the job is complete. Once done, you download the result from `GET /api/audio/{id}`. If you requested MIDI output, it is available at `GET /api/midi/{id}`.
+
+---
+
+## POST /api/generate
+
+Submit a generation request. The server enqueues the job and returns immediately — it does not wait for generation to finish.
+
+### Request body
+
+<ParamField body="model" type="string" required>
+  Model to use for generation. Must match `^(musicgen|stable_audio)$`.
+
+  - `"musicgen"` — autoregressive, 32 kHz, mono or stereo
+  - `"stable_audio"` — diffusion-based, 44.1 kHz stereo
+</ParamField>
+
+<ParamField body="prompt" type="string" required>
+  Text description of the audio you want to generate. Minimum 1 character, maximum 5000 characters. The T5 tokenizer truncates inputs beyond 512 tokens.
+</ParamField>
+
+<ParamField body="negative_prompt" type="string">
+  Describes characteristics to avoid in the output. Maximum 5000 characters. Only used by `stable_audio`; ignored by `musicgen`.
+
+  Default: `""`
+</ParamField>
+
+<ParamField body="seconds" type="float">
+  Duration of the generated audio in seconds. Must be between `0.1` and `300`.
+
+  Default: `5.0`
+
+  <Note>
+    MusicGen produces reliable results up to ~30 seconds; Stable Audio up to ~47 seconds. Very long durations may produce lower-quality output.
+  </Note>
+</ParamField>
+
+<ParamField body="seed" type="integer | null">
+  Random seed for reproducibility. Pass an integer to get deterministic output. `null` uses a random seed each time.
+
+  Default: `null`
+</ParamField>
+
+<ParamField body="output_mode" type="string">
+  Controls what output the job produces. Must match `^(audio|midi|both)$`.
+
+  - `"audio"` — WAV/AIFF/FLAC file only
+  - `"midi"` — transcribes the generated audio to MIDI (audio is still generated internally)
+  - `"both"` — audio file and MIDI file
+
+  Default: `"audio"`
+</ParamField>
+
+#### MusicGen parameters
+
+<ParamField body="temperature" type="float">
+  Sampling temperature. Higher values produce more creative, varied output; lower values are more deterministic. Must be greater than `0`.
+
+  Default: `1.0`
+</ParamField>
+
+<ParamField body="top_k" type="integer">
+  Number of top-k token candidates considered at each sampling step. Must be `≥ 1`.
+
+  Default: `250`
+</ParamField>
+
+<ParamField body="guidance_coef" type="float">
+  Classifier-free guidance scale. Higher values make output follow the prompt more closely. Must be `≥ 0`.
+
+  Default: `3.0`
+</ParamField>
+
+<ParamField body="melody_path" type="string | null">
+  Absolute path to a WAV file used for melody conditioning (melody model variants only). The pipeline extracts a 12-bin chromagram and uses it as additional conditioning. Maximum 1024 characters. Must not contain `..`.
+
+  Default: `null`
+</ParamField>
+
+<ParamField body="style_audio_path" type="string | null">
+  Absolute path to a WAV file used for style conditioning (style model variant only). MERT extracts timbre features from the reference to guide generation. Maximum 1024 characters. Must not contain `..`.
+
+  Default: `null`
+</ParamField>
+
+<ParamField body="style_coef" type="float">
+  Dual-CFG text influence coefficient for style conditioning. Controls how strongly the text prompt influences output relative to the style reference. Must be `≥ 0`.
+
+  Default: `5.0`
+</ParamField>
+
+#### Stable Audio parameters
+
+<ParamField body="steps" type="integer">
+  Number of diffusion steps. More steps produce higher quality at the cost of speed. Must be between `1` and `1000`.
+
+  Default: `8`
+</ParamField>
+
+<ParamField body="cfg_scale" type="float">
+  CFG guidance scale for Stable Audio. Must be `≥ 0`.
+
+  Default: `6.0`
+</ParamField>
+
+<ParamField body="sampler" type="string">
+  ODE sampler to use. Must match `^(euler|rk4)$`.
+
+  Default: `"euler"`
+</ParamField>
+
+<ParamField body="reference_audio_path" type="string | null">
+  Absolute path to a reference audio file for audio-to-audio generation (Stable Audio only). The model conditions on the reference to produce variations. Maximum 1024 characters. Must not contain `..`.
+
+  Default: `null`
+</ParamField>
+
+<ParamField body="reference_strength" type="float">
+  How strongly the reference audio influences output. `0.0` ignores the reference; `1.0` stays close to it. Must be between `0.0` and `1.0`.
+
+  Default: `0.7`
+</ParamField>
+
+<ParamField body="lora" type="string | null">
+  Name or path of a LoRA adapter to apply to the MusicGen pipeline. Maximum 200 characters.
+
+  Default: `null`
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  Job ID — an 8-character hex string (e.g., `"a3f1c2d4"`). Use this to poll status and download output.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Always `"queued"` on a successful submission.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "musicgen",
+    "prompt": "upbeat jazz with piano and brushed drums",
+    "seconds": 15,
+    "temperature": 1.0,
+    "top_k": 250,
+    "guidance_coef": 3.0,
+    "output_mode": "both",
+    "seed": 42
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "http://localhost:8420/api/generate",
+    json={
+        "model": "musicgen",
+        "prompt": "upbeat jazz with piano and brushed drums",
+        "seconds": 15,
+        "temperature": 1.0,
+        "top_k": 250,
+        "guidance_coef": 3.0,
+        "output_mode": "both",
+        "seed": 42,
+    },
+)
+data = response.json()
+job_id = data["id"]
+print(f"Job submitted: {job_id}")
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "id": "a3f1c2d4",
+  "status": "queued"
+}
+```
+
+---
+
+## GET /api/status/{id}
+
+Poll the status of a generation job. Call this repeatedly until `status` is `"done"` or `"error"`.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Job ID returned by `POST /api/generate`.
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  Job ID.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current job state: `"queued"`, `"running"`, `"done"`, or `"error"`.
+</ResponseField>
+
+<ResponseField name="progress" type="float">
+  Generation progress from `0.0` to `1.0`. Updated in real time while the job is running.
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  Model that was requested.
+</ResponseField>
+
+<ResponseField name="prompt" type="string">
+  Prompt from the original request.
+</ResponseField>
+
+<ResponseField name="seconds" type="float">
+  Requested duration.
+</ResponseField>
+
+<ResponseField name="created_at" type="float">
+  Unix timestamp when the job was created.
+</ResponseField>
+
+<ResponseField name="completed_at" type="float | null">
+  Unix timestamp when the job finished. `null` while still running.
+</ResponseField>
+
+<ResponseField name="sample_rate" type="integer | null">
+  Sample rate of the generated audio. `null` until the job completes. MusicGen: 32000. Stable Audio: 44100.
+</ResponseField>
+
+<ResponseField name="has_midi" type="boolean">
+  Whether a MIDI file is available for download on this job.
+</ResponseField>
+
+<ResponseField name="starred" type="boolean">
+  Whether the job has been starred as a favorite.
+</ResponseField>
+
+<ResponseField name="error" type="string | null">
+  Error message if `status` is `"error"`. `null` otherwise.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/status/a3f1c2d4
+```
+
+```python Python (polling loop)
+import time
+import requests
+
+def wait_for_job(job_id: str, poll_interval: float = 1.0) -> dict:
+    url = f"http://localhost:8420/api/status/{job_id}"
+    while True:
+        resp = requests.get(url)
+        resp.raise_for_status()
+        data = resp.json()
+        status = data["status"]
+        progress = data.get("progress", 0.0)
+        print(f"Status: {status} ({progress:.0%})")
+        if status == "done":
+            return data
+        if status == "error":
+            raise RuntimeError(f"Generation failed: {data.get('error')}")
+        time.sleep(poll_interval)
+
+result = wait_for_job("a3f1c2d4")
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "id": "a3f1c2d4",
+  "status": "done",
+  "progress": 1.0,
+  "model": "musicgen",
+  "prompt": "upbeat jazz with piano and brushed drums",
+  "seconds": 15.0,
+  "created_at": 1715000000.0,
+  "completed_at": 1715000023.4,
+  "sample_rate": 32000,
+  "has_midi": true,
+  "starred": false,
+  "error": null
+}
+```
+
+---
+
+## GET /api/audio/{id}
+
+Download the generated audio file. The job must have `status: "done"` before calling this endpoint.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Job ID from `POST /api/generate`.
+</ParamField>
+
+### Query parameters
+
+<ParamField query="fmt" type="string">
+  Output format. One of `wav`, `aiff`, or `flac`.
+
+  Default: `"aiff"`
+</ParamField>
+
+### Response
+
+Returns the audio file as a binary response with the appropriate `Content-Type` header:
+
+| Format | Content-Type |
+|---|---|
+| `wav` | `audio/wav` |
+| `aiff` | `audio/aiff` |
+| `flac` | `audio/flac` |
+
+The `Content-Disposition` header is set to `attachment; filename="<job_id>.<ext>"`.
+
+Returns `HTTP 202` (with an error message) if the job is still in progress. Returns `HTTP 404` if the job ID does not exist.
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -o output.wav "http://localhost:8420/api/audio/a3f1c2d4?fmt=wav"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "http://localhost:8420/api/audio/a3f1c2d4",
+    params={"fmt": "wav"},
+)
+resp.raise_for_status()
+with open("output.wav", "wb") as f:
+    f.write(resp.content)
+print("Audio saved to output.wav")
+```
+
+</CodeGroup>
+
+---
+
+## GET /api/midi/{id}
+
+Download the generated MIDI file. Only available when `output_mode` was `"midi"` or `"both"` in the original generation request.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Job ID from `POST /api/generate`.
+</ParamField>
+
+### Response
+
+Returns the MIDI file as `audio/midi` with `Content-Disposition: attachment; filename="<job_id>.mid"`.
+
+Returns `HTTP 404` if no MIDI data exists for the job (e.g., `output_mode` was `"audio"`).
+
+### Example
+
+```bash
+curl -o output.mid http://localhost:8420/api/midi/a3f1c2d4
+```
+
+---
+
+## GET /api/jobs
+
+List all active and recently completed jobs in the server's memory.
+
+### Response
+
+Returns an array of job objects in the same shape as `GET /api/status/{id}`.
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/jobs
+```
+
+```python Python
+import requests
+
+jobs = requests.get("http://localhost:8420/api/jobs").json()
+for job in jobs:
+    print(job["id"], job["status"], f'{job["progress"]:.0%}')
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "id": "a3f1c2d4",
+    "status": "done",
+    "progress": 1.0,
+    "model": "musicgen",
+    "prompt": "upbeat jazz with piano",
+    "seconds": 15.0,
+    "created_at": 1715000000.0,
+    "completed_at": 1715000023.4,
+    "sample_rate": 32000,
+    "has_midi": true,
+    "starred": false,
+    "error": null
+  }
+]
+```

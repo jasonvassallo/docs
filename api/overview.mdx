@@ -1,0 +1,99 @@
+---
+title: "MLX AudioGen HTTP server API — complete reference"
+description: "Complete reference for the MLX AudioGen HTTP server API — a FastAPI server exposing async audio generation, job polling, model management, and prompt tools."
+---
+
+The MLX AudioGen HTTP server exposes a REST API that lets you submit text-to-audio generation requests, poll job progress, download results, and manage models — all over plain HTTP. You POST a prompt to get a job ID, poll until the job is done, then download your audio file. The server is built with FastAPI and runs locally on your Apple Silicon Mac; no cloud service or authentication is required.
+
+## Base URL
+
+```
+http://localhost:8420
+```
+
+The default port is `8420`. Pass `--port <number>` to `mlx-audiogen-server` to change it.
+
+<Info>
+Interactive API documentation (Swagger UI) is available at `http://localhost:8420/docs` whenever the server is running. You can explore and call every endpoint directly from the browser.
+</Info>
+
+## Authentication
+
+No authentication is required for local use. CORS is enabled for all origins, so browser-based clients (including the bundled web UI and Max for Live) can call the API directly.
+
+<Warning>
+If you expose the server on `0.0.0.0` for remote access, the API has no built-in authentication. Use a reverse proxy with auth, or rely on network-level controls, before exposing the server externally.
+</Warning>
+
+## Rate limits
+
+The server enforces per-IP sliding-window rate limits to protect public deployments:
+
+| Endpoint | Limit |
+|---|---|
+| `POST /api/generate` | 10 requests per minute |
+| All other `/api/*` endpoints | 60 requests per minute |
+| `/api/health`, `/api/system` | Exempt |
+
+Requests that exceed the limit receive `HTTP 429` with a `detail` message.
+
+## Async job design
+
+All generation endpoints are asynchronous. The typical workflow is:
+
+1. **Submit** — `POST /api/generate` returns a `job_id` immediately with status `queued`.
+2. **Poll** — `GET /api/status/{id}` returns the current status and a `progress` float (0.0–1.0).
+3. **Download** — `GET /api/audio/{id}` or `GET /api/midi/{id}` when status is `done`.
+
+A single background worker processes one job at a time (MLX is GPU-bound on Apple Silicon). The server keeps up to 100 jobs in memory; completed jobs older than 5 minutes are cleaned up automatically.
+
+## Endpoint index
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/generate` | Submit a generation request — returns a job ID. Supports `output_mode`: `audio`, `midi`, or `both` |
+| `GET` | `/api/status/{id}` | Poll job status (`queued` / `running` / `done` / `error`) with real-time `progress` (0.0–1.0) |
+| `GET` | `/api/audio/{id}` | Download generated audio (WAV, AIFF, or FLAC) |
+| `GET` | `/api/midi/{id}` | Download generated MIDI — available when `output_mode` is `midi` or `both` |
+| `GET` | `/api/models` | List available models and their loading status |
+| `GET` | `/api/jobs` | List all active and recent jobs |
+| `GET` | `/api/health` | Health check — returns `200 OK` when the server is running |
+| `POST` | `/api/suggest` | Analyze a prompt and return refined suggestions |
+| `POST` | `/api/enhance` | Enhance a prompt via local LLM or template fallback |
+| `POST` | `/api/midi-to-prompt` | Convert a MIDI file to a descriptive text prompt |
+| `POST` | `/api/separate/{id}` | Separate a completed job's audio into stems using Demucs v4 |
+| `GET` | `/api/presets` | List saved presets |
+| `POST` | `/api/presets/{name}` | Save a preset |
+| `GET` | `/api/presets/{name}` | Load a preset by name |
+| `GET` | `/api/tags` | Tag database for prompt autocomplete |
+| `GET` | `/api/llm/models` | List discovered local LLM models |
+| `POST` | `/api/llm/select` | Select and load a local LLM model |
+| `GET` | `/api/memory` | Get prompt memory — generation history and style profile |
+| `GET` | `/api/settings` | Get current server settings |
+| `POST` | `/api/settings` | Update server settings at runtime |
+
+## End-to-end example
+
+Start the server, submit a generation, poll until done, and download the result:
+
+```bash
+# Start the server
+mlx-audiogen-server --weights-dir ./converted/musicgen-small --port 8420
+
+# Submit a generation request
+curl -X POST http://localhost:8420/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"model": "musicgen", "prompt": "upbeat jazz with piano and brushed drums", "seconds": 10}'
+# → {"id": "a3f1c2d4", "status": "queued"}
+
+# Poll status until done
+curl http://localhost:8420/api/status/a3f1c2d4
+# → {"id": "a3f1c2d4", "status": "running", "progress": 0.42, ...}
+
+# Download the audio when status is "done"
+curl -o output.wav "http://localhost:8420/api/audio/a3f1c2d4?fmt=wav"
+```
+
+<Tip>
+Use `mlx-audiogen-app` as a one-command launcher — it auto-discovers all converted models in `./converted/` and opens the web UI automatically.
+</Tip>

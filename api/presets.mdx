@@ -1,0 +1,306 @@
+---
+title: "Save and load audio generation presets via the API"
+description: "Use GET and POST /api/presets to save, list, and load named generation parameter sets, and manage server settings with GET and POST /api/settings."
+---
+
+Presets let you save a complete set of generation parameters — model, prompt, duration, temperature, and all other fields — under a named key. You can load them back later to reproduce a specific configuration without re-specifying every parameter. Presets are stored as `.mlxpreset` files in `~/.mlx-audiogen/presets/` and are shared between the web UI and the API.
+
+---
+
+## GET /api/presets
+
+List all saved presets. Returns a summary of each preset including its name, prompt, and model.
+
+### Response
+
+Returns an array of preset summary objects. Each object contains the preset's metadata but not the full parameter set — use `GET /api/presets/{name}` to load the complete parameters.
+
+<ResponseField name="name" type="string">
+  Preset identifier (the filename stem, without the `.mlxpreset` extension).
+</ResponseField>
+
+<ResponseField name="filename" type="string">
+  Full filename of the preset file (e.g., `"my-preset.mlxpreset"`).
+</ResponseField>
+
+<ResponseField name="prompt" type="string">
+  The prompt saved in the preset.
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  The model type saved in the preset (`"musicgen"` or `"stable_audio"`).
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/presets
+```
+
+```python Python
+import requests
+
+presets = requests.get("http://localhost:8420/api/presets").json()
+for p in presets:
+    print(f"{p['name']}: {p['prompt'][:60]}")
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "name": "jazz-loop",
+    "filename": "jazz-loop.mlxpreset",
+    "prompt": "upbeat jazz with piano and brushed drums",
+    "model": "musicgen"
+  },
+  {
+    "name": "ambient-pad",
+    "filename": "ambient-pad.mlxpreset",
+    "prompt": "slowly evolving ambient pad, spacious reverb",
+    "model": "stable_audio"
+  }
+]
+```
+
+---
+
+## GET /api/presets/{name}
+
+Load a specific preset by name. Returns the complete generation parameter object stored in the preset — equivalent to a `GenerateRequest` body you can submit directly to `POST /api/generate`.
+
+### Path parameters
+
+<ParamField path="name" type="string" required>
+  Preset name to load (case-sensitive, without the `.mlxpreset` extension). Only alphanumeric characters, spaces, periods, underscores, and hyphens are permitted. Maximum 100 characters.
+</ParamField>
+
+### Response
+
+Returns a full generation parameter object matching the `POST /api/generate` request schema. All fields are included, including defaults for any parameters that were not explicitly set when the preset was saved.
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/presets/jazz-loop
+```
+
+```python Python
+import requests
+
+preset = requests.get("http://localhost:8420/api/presets/jazz-loop").json()
+# Use the preset to submit a new generation
+response = requests.post(
+    "http://localhost:8420/api/generate",
+    json=preset,
+)
+print("Job ID:", response.json()["id"])
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "model": "musicgen",
+  "prompt": "upbeat jazz with piano and brushed drums",
+  "negative_prompt": "",
+  "seconds": 15.0,
+  "temperature": 1.0,
+  "top_k": 250,
+  "guidance_coef": 3.0,
+  "steps": 8,
+  "cfg_scale": 6.0,
+  "sampler": "euler",
+  "seed": 42,
+  "output_mode": "audio",
+  "melody_path": null,
+  "style_audio_path": null,
+  "style_coef": 5.0,
+  "reference_audio_path": null,
+  "reference_strength": 0.7,
+  "lora": null
+}
+```
+
+Returns `HTTP 404` if the preset does not exist.
+
+---
+
+## POST /api/presets/{name}
+
+Save a preset with the given name. The request body is the same as `POST /api/generate` — pass your full parameter set and it will be stored on disk.
+
+### Path parameters
+
+<ParamField path="name" type="string" required>
+  Name to save the preset under. Only alphanumeric characters, spaces, periods, underscores, and hyphens are permitted. Maximum 100 characters. The name is sanitized before writing — any disallowed characters are stripped.
+</ParamField>
+
+### Request body
+
+The request body follows the same schema as `POST /api/generate`. All fields are optional except `prompt` (which is required), and all defaults apply.
+
+See [POST /api/generate](/api/generation#post-api-generate) for the full field reference.
+
+### Response
+
+<ResponseField name="saved" type="string">
+  The sanitized name the preset was saved under.
+</ResponseField>
+
+<ResponseField name="path" type="string">
+  Absolute filesystem path where the preset was written (for reference only).
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/presets/jazz-loop \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "musicgen",
+    "prompt": "upbeat jazz with piano and brushed drums",
+    "seconds": 15.0,
+    "temperature": 1.0,
+    "guidance_coef": 3.0,
+    "seed": 42
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "http://localhost:8420/api/presets/jazz-loop",
+    json={
+        "model": "musicgen",
+        "prompt": "upbeat jazz with piano and brushed drums",
+        "seconds": 15.0,
+        "temperature": 1.0,
+        "guidance_coef": 3.0,
+        "seed": 42,
+    },
+)
+print(resp.json())
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "saved": "jazz-loop",
+  "path": "/Users/you/.mlx-audiogen/presets/jazz-loop.mlxpreset"
+}
+```
+
+Returns `HTTP 400` if the sanitized name resolves to an empty string.
+
+---
+
+## GET /api/settings
+
+Get the current server settings. Settings control LLM enhancement behavior and generation history context.
+
+### Response
+
+<ResponseField name="llm_model" type="string | null">
+  The currently selected LLM model ID, or `null` if no LLM is selected.
+</ResponseField>
+
+<ResponseField name="ai_enhance" type="boolean">
+  Whether AI-based prompt enhancement is enabled.
+</ResponseField>
+
+<ResponseField name="history_context_count" type="integer">
+  How many recent generation entries to include as context when building the style profile. Between `0` and `200`.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/settings
+```
+
+```python Python
+import requests
+
+settings = requests.get("http://localhost:8420/api/settings").json()
+print(settings)
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "llm_model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+  "ai_enhance": true,
+  "history_context_count": 50
+}
+```
+
+---
+
+## POST /api/settings
+
+Update one or more server settings at runtime. Changes are persisted to `~/.mlx-audiogen/settings.json` and take effect immediately.
+
+### Request body
+
+<ParamField body="llm_model" type="string | null">
+  LLM model ID to activate for prompt enhancement. Setting this also updates the active LLM path used by `/api/enhance`. Pass `null` to disable LLM enhancement.
+</ParamField>
+
+<ParamField body="ai_enhance" type="boolean">
+  Enable or disable AI-based prompt enhancement globally.
+
+  Default: `true`
+</ParamField>
+
+<ParamField body="history_context_count" type="integer">
+  Number of recent generation entries to include in style profile context. Must be between `0` and `200`.
+
+  Default: `50`
+</ParamField>
+
+### Response
+
+Returns the updated settings object in the same shape as `GET /api/settings`.
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/settings \
+  -H "Content-Type: application/json" \
+  -d '{"ai_enhance": false, "history_context_count": 20}'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "http://localhost:8420/api/settings",
+    json={"ai_enhance": False, "history_context_count": 20},
+)
+print(resp.json())
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "llm_model": null,
+  "ai_enhance": false,
+  "history_context_count": 20
+}
+```

@@ -1,0 +1,235 @@
+---
+title: "List and manage audio models with the MLX AudioGen API"
+description: "Use GET /api/models, GET /api/llm/models, POST /api/llm/select, and GET /api/memory to inspect loaded models and prompt history in MLX AudioGen."
+---
+
+The MLX AudioGen server maintains an LRU cache of loaded model pipelines to avoid reloading large weight files on every request. You can inspect which models are registered, which are currently loaded, and manage local LLM models for prompt enhancement — all through the model management endpoints.
+
+---
+
+## GET /api/models
+
+List all models registered with the server and whether each one is currently loaded in the LRU pipeline cache.
+
+The server keeps up to 2 pipelines in memory by default (configurable via `--max-cache`). When a third model is needed, the least-recently-used pipeline is evicted.
+
+### Response
+
+Returns an array of model objects.
+
+<ResponseField name="name" type="string">
+  Model identifier — the name of the weights directory (e.g., `"musicgen-small"`, `"stable-audio"`). Filesystem paths are never exposed.
+</ResponseField>
+
+<ResponseField name="model_type" type="string">
+  Inferred model family: `"musicgen"` or `"stable_audio"`.
+</ResponseField>
+
+<ResponseField name="is_loaded" type="boolean">
+  Whether this model is currently loaded in the LRU cache and ready to generate without a reload delay.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/models
+```
+
+```python Python
+import requests
+
+models = requests.get("http://localhost:8420/api/models").json()
+for m in models:
+    loaded = "loaded" if m["is_loaded"] else "not loaded"
+    print(f"{m['name']} ({m['model_type']}) — {loaded}")
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "name": "musicgen-small",
+    "model_type": "musicgen",
+    "is_loaded": true
+  },
+  {
+    "name": "stable-audio",
+    "model_type": "stable_audio",
+    "is_loaded": false
+  }
+]
+```
+
+<Note>
+The `name` field matches the folder name you passed to `--weights-dir`. It is used as the `model` value in `POST /api/generate`. If you registered `./converted/musicgen-small`, the name is `"musicgen-small"`.
+</Note>
+
+---
+
+## GET /api/llm/models
+
+List locally available MLX LLM models that can be used for prompt enhancement. The server discovers these from the local HuggingFace model cache.
+
+### Response
+
+Returns an array of model descriptor objects.
+
+<ResponseField name="id" type="string">
+  Model identifier used when selecting a model via `POST /api/llm/select`.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Human-readable model name.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/llm/models
+```
+
+```python Python
+import requests
+
+models = requests.get("http://localhost:8420/api/llm/models").json()
+for m in models:
+    print(m["id"], m["name"])
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+    "name": "Mistral 7B Instruct v0.3 (4-bit)"
+  },
+  {
+    "id": "mlx-community/Phi-3-mini-4k-instruct-4bit",
+    "name": "Phi-3 Mini 4k Instruct (4-bit)"
+  }
+]
+```
+
+<Info>
+LLM-based prompt enhancement requires the `mlx-audiogen[llm]` extra (`pip install mlx-audiogen[llm]`). If this extra is not installed, `/api/enhance` falls back to template-based enhancement automatically.
+</Info>
+
+---
+
+## POST /api/llm/select
+
+Select and activate a local LLM model for prompt enhancement. The selected model ID is persisted to `~/.mlx-audiogen/settings.json` and restored when the server restarts.
+
+### Request body
+
+Send a JSON object with a `model_id` field.
+
+<ParamField body="model_id" type="string | null" required>
+  The model ID to activate, matching a value from `GET /api/llm/models`. Pass `null` to deselect the current model and disable LLM enhancement.
+</ParamField>
+
+### Response
+
+<ResponseField name="model_id" type="string | null">
+  The model ID that was selected, or `null` if deselected.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  `"selected"` when a model was activated, or `"deselected"` when cleared.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+# Select a model
+curl -X POST http://localhost:8420/api/llm/select \
+  -H "Content-Type: application/json" \
+  -d '{"model_id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit"}'
+
+# Deselect (disable LLM enhancement)
+curl -X POST http://localhost:8420/api/llm/select \
+  -H "Content-Type: application/json" \
+  -d '{"model_id": null}'
+```
+
+```python Python
+import requests
+
+# Select a model
+resp = requests.post(
+    "http://localhost:8420/api/llm/select",
+    json={"model_id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit"},
+)
+print(resp.json())
+# → {"model_id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit", "status": "selected"}
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "model_id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+  "status": "selected"
+}
+```
+
+Returns `HTTP 404` if the provided `model_id` is not in the list of discovered models.
+
+---
+
+## GET /api/memory
+
+Return the server's prompt memory — a history of past generation prompts and a derived style profile. The style profile captures recurring genres, moods, and instruments from your generation history and is used to personalize prompt suggestions.
+
+### Response
+
+<ResponseField name="history" type="array">
+  Array of past generation entries. Each entry contains the prompt and metadata from previous generation requests.
+</ResponseField>
+
+<ResponseField name="style_profile" type="object">
+  A derived style profile based on your generation history. Used to personalize suggestions returned by `/api/suggest`.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/memory
+```
+
+```python Python
+import requests
+
+memory = requests.get("http://localhost:8420/api/memory").json()
+print(f"History entries: {len(memory['history'])}")
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "history": [
+    {
+      "prompt": "upbeat jazz with piano and brushed drums",
+      "model": "musicgen",
+      "seconds": 15.0,
+      "timestamp": 1715000000.0
+    }
+  ],
+  "style_profile": {
+    "top_genres": ["jazz", "electronic"],
+    "top_moods": ["upbeat", "energetic"],
+    "top_instruments": ["piano", "drums"]
+  }
+}
+```

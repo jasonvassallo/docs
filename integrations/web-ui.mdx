@@ -1,0 +1,109 @@
+---
+title: "Use the MLX AudioGen web UI for interactive generation"
+description: "Launch the DAW-inspired browser interface to generate, preview, and manage audio — with BPM sync, stem separation, and AI prompt tools."
+---
+
+The MLX AudioGen web UI gives you a full-featured, browser-based interface for generating audio without leaving your creative workflow. Built with React and TypeScript, it mirrors the layout of a professional DAW — complete with a transport bar, waveform playback, generation history, and stem separation — all talking to a local server running entirely on your Apple Silicon Mac.
+
+## Launch the web UI
+
+<Steps>
+  <Step title="Install the server package">
+    If you haven't already, install the server and web UI dependencies:
+
+    ```bash
+    pip install "mlx-audiogen[server]"
+    ```
+
+    For AI prompt enhancement, add the `llm` extra:
+
+    ```bash
+    pip install "mlx-audiogen[server,llm]"
+    ```
+  </Step>
+
+  <Step title="Start the app">
+    Run `mlx-audiogen-app` to auto-discover any converted models in your default locations and open the browser:
+
+    ```bash
+    mlx-audiogen-app
+    ```
+
+    To point at a specific model directory or change the port:
+
+    ```bash
+    mlx-audiogen-server --weights-dir ./converted/musicgen-small --port 8420 --open
+    ```
+
+    The UI opens at `http://localhost:8420` by default.
+  </Step>
+
+  <Step title="Choose a model and generate">
+    Select a model from the model selector at the top of the UI, type your prompt in the text field, and adjust the parameter sliders. Click **Generate** to submit the request — the server queues and runs generation while the UI shows real-time progress.
+  </Step>
+</Steps>
+
+<Tip>
+You can load multiple models at once and switch between them without restarting the server. The server keeps the two most recently used models in an LRU cache, so switching is fast after the initial load.
+
+```bash
+mlx-audiogen-server \
+  --weights-dir ./converted/musicgen-small \
+  --weights-dir ./converted/stable-audio \
+  --port 8420
+```
+</Tip>
+
+## Features
+
+<AccordionGroup>
+  <Accordion title="Generation controls">
+    The generation panel includes a model selector, a prompt textarea with tag autocomplete (genres, moods, instruments), and model-aware parameter sliders that show or hide based on the selected model — MusicGen exposes temperature, top-k, and guidance coefficient; Stable Audio exposes diffusion steps, CFG scale, and sampler.
+
+    You can also enable **BPM-based duration mode**, which calculates audio length from a target bar count and your session BPM rather than raw seconds.
+  </Accordion>
+
+  <Accordion title="AI prompt enhancement">
+    When you install the `llm` extra, the UI gains an **Enhance** button. Click it to run your prompt through a local LLM model — the enhanced version appears in a preview pane where you can accept it, edit it, or keep your original prompt. No data leaves your machine.
+  </Accordion>
+
+  <Accordion title="Prompt suggestions">
+    The **Suggestions** panel analyzes your prompt and returns structured tags (genre, mood, instruments) alongside refined prompt cards. Click any suggestion card to populate the prompt field instantly.
+  </Accordion>
+
+  <Accordion title="Playback and waveform visualization">
+    Generated audio plays back with a Web Audio API waveform display. Playback supports **BPM-synced looping** — the loop boundaries snap to your BPM grid so the audio cycles cleanly. You can switch between **time-stretch** mode (tempo changes without pitch shift) and **vinyl pitch** mode (pitch and tempo shift together, like a record player).
+  </Accordion>
+
+  <Accordion title="Transport bar">
+    The bottom-of-screen transport bar is always visible. It shows master BPM, the current pitch mode, an audio device selector, and the server connection status. Changes to BPM and pitch mode apply globally to all playback in the session.
+  </Accordion>
+
+  <Accordion title="Generation history">
+    Every generation is saved to IndexedDB in your browser. The history panel shows all past generations with waveform thumbnails, prompt text, and timestamps. You can mark items as favorites to pin them, set an auto-delete retention period to keep your history manageable, and download any generation as a MIDI file.
+  </Accordion>
+
+  <Accordion title="Stem separation">
+    After generating audio, click **Separate** to run Demucs v4 stem separation on the server. The UI shows four color-coded inline audio players — one each for drums, bass, vocals, and other — so you can audition and download individual stems without leaving the browser.
+  </Accordion>
+
+  <Accordion title="Presets">
+    Save your current parameter configuration as a named preset and reload it later. Presets are stored on the server and available across browser sessions and devices that connect to the same server.
+  </Accordion>
+
+  <Accordion title="Remote server connection">
+    The UI can connect to a remote mlx-audiogen server — for example, a Mac Mini in the cloud or on your local network. Enter the remote address in the **Remote Server** panel and the UI transparently routes all API calls to that host.
+
+    To allow connections from other devices, start the server with `--host 0.0.0.0`:
+
+    ```bash
+    mlx-audiogen-server --weights-dir ./converted/musicgen-small --host 0.0.0.0
+    ```
+
+    Then open `http://<your-mac-ip>:8420` on any device on your network.
+  </Accordion>
+</AccordionGroup>
+
+## Interactive API reference
+
+When the server is running, the full REST API is documented at `http://localhost:8420/docs`. Use it to explore endpoints, test requests, and build custom integrations on top of the same HTTP interface the web UI uses.

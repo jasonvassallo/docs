@@ -1,0 +1,219 @@
+---
+title: 'Configure the MLX AudioGen server and runtime options'
+description: 'Full reference for mlx-audiogen-server startup flags, multi-model caching, remote access, the settings API, and LoRA adapter configuration.'
+---
+
+The MLX AudioGen server is configured through a combination of startup flags, a persistent settings file, and a runtime settings API. This page covers every option you can control: which models the server loads, how many stay in memory, how the server binds to the network, and how to configure LLM prompt enhancement and LoRA adapters.
+
+---
+
+## Server startup flags
+
+These flags are passed when you launch `mlx-audiogen-server`. Changes take effect on the next server start.
+
+<ParamField path="--weights-dir" type="string" required>
+  Path to a converted model directory. Pass this flag multiple times to register multiple models. The server uses an LRU cache and keeps the two most recently used models loaded simultaneously (configurable with `--max-cache`).
+</ParamField>
+
+<ParamField path="--port" type="integer" default="8420">
+  Port the server listens on. Change this if port 8420 is already in use on your machine.
+</ParamField>
+
+<ParamField path="--host" type="string" default="127.0.0.1">
+  Network interface the server binds to. The default restricts access to your local machine. Set to `0.0.0.0` to accept connections from any device on your network.
+</ParamField>
+
+<ParamField path="--max-cache" type="integer" default="2">
+  Maximum number of model pipelines to hold in memory simultaneously. When this limit is reached and a new model is requested, the least recently used pipeline is evicted and its memory is freed. Increase this value if you have enough unified memory to hold more models.
+</ParamField>
+
+<ParamField path="--open" type="boolean">
+  Open the web UI in your default browser automatically 1.5 seconds after the server starts.
+</ParamField>
+
+<Note>
+  The server binds to `127.0.0.1` by default. This means only processes running on the same machine can reach it. If you want to generate audio from a browser on another device (such as an iPad connecting to a Mac Mini), pass `--host 0.0.0.0`. Anyone on your local network will then be able to send requests to the server.
+</Note>
+
+---
+
+## Multi-model setup
+
+You can register multiple converted model directories at startup. The server resolves the model to use from the name of the weights directory — a directory named `musicgen-small` is recognized as a MusicGen model, and one named `stable-audio` as a Stable Audio model.
+
+<Tip>
+  Pass `--weights-dir` once per model you want to serve. The LRU cache keeps the two most recently used pipelines loaded, so switching between models is fast as long as the previous model is still in the cache.
+</Tip>
+
+```bash
+mlx-audiogen-server \
+  --weights-dir ./converted/musicgen-small \
+  --weights-dir ./converted/musicgen-stereo-large \
+  --weights-dir ./converted/stable-audio \
+  --max-cache 2 \
+  --port 8420
+```
+
+In this example, three models are registered but only two are held in memory at once. Generating with the third model evicts whichever of the first two was used least recently.
+
+---
+
+## Remote access
+
+The most common remote-access pattern is serving from a Mac Mini or Mac Studio and connecting from a laptop, iPad, or another machine on the same network.
+
+```bash
+# On the Mac Mini:
+mlx-audiogen-server \
+  --weights-dir ./converted/musicgen-small \
+  --host 0.0.0.0 \
+  --port 8420
+
+# On the iPad or other device — open a browser to:
+# http://<mac-mini-ip>:8420
+```
+
+Find the host machine's IP address in **System Settings → Network** or by running `ipconfig getifaddr en0` in Terminal.
+
+---
+
+## Settings API
+
+You can read and update runtime settings without restarting the server.
+
+### GET /api/settings
+
+Returns the current server settings as JSON.
+
+```bash
+curl http://localhost:8420/api/settings
+```
+
+```json
+{
+  "llm_model": null,
+  "ai_enhance": true,
+  "history_context_count": 50
+}
+```
+
+### POST /api/settings
+
+Updates one or more settings. Changes are persisted to `~/.mlx-audiogen/settings.json` and survive server restarts.
+
+<ParamField body="llm_model" type="string | null">
+  The LLM model ID to use for prompt enhancement. Set to `null` to disable LLM enhancement.
+</ParamField>
+
+<ParamField body="ai_enhance" type="boolean" default="true">
+  Whether AI prompt enhancement is enabled. When `false`, the `/api/enhance` endpoint uses template-based fallback instead of a local LLM.
+</ParamField>
+
+<ParamField body="history_context_count" type="integer" default="50">
+  Number of recent prompts from history to include when building the LLM context for prompt enhancement. Valid range is 0–200.
+</ParamField>
+
+```bash
+curl -X POST http://localhost:8420/api/settings \
+  -H "Content-Type: application/json" \
+  -d '{"ai_enhance": false, "history_context_count": 20}'
+```
+
+---
+
+## LLM prompt enhancement
+
+The server can use a local LLM model (via `mlx-lm`) to rewrite and improve your prompts before generation. This requires the `[llm]` extra:
+
+```bash
+pip install mlx-audiogen[llm]
+```
+
+LLM models are auto-discovered from your HuggingFace model cache. Once at least one compatible model is available, you can select it in the web UI or via the API.
+
+### GET /api/llm/models
+
+Lists all locally discovered MLX LLM models available for prompt enhancement.
+
+### POST /api/llm/select
+
+Selects the active LLM model by its ID.
+
+```bash
+curl -X POST http://localhost:8420/api/llm/select \
+  -H "Content-Type: application/json" \
+  -d '{"model_id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit"}'
+```
+
+Pass `{"model_id": null}` to deselect the current LLM and fall back to template-based enhancement.
+
+---
+
+## Output files and audio formats
+
+Generated audio is stored in memory on the server. You download it via `GET /api/audio/{id}`. The server supports three download formats:
+
+| Format | Query parameter | MIME type |
+|--------|----------------|-----------|
+| AIFF (default) | `?fmt=aiff` | `audio/aiff` |
+| WAV | `?fmt=wav` | `audio/wav` |
+| FLAC | `?fmt=flac` | `audio/flac` |
+
+```bash
+# Download as WAV
+curl "http://localhost:8420/api/audio/abc123?fmt=wav" -o output.wav
+```
+
+When you submit a generation request with `"output_mode": "midi"` or `"output_mode": "both"`, MIDI is available at `GET /api/midi/{id}`.
+
+Jobs are kept in memory for 5 minutes after completion. After that, they are cleaned up when the server reaches its job limit of 100.
+
+---
+
+## LoRA adapter configuration
+
+LoRA adapters customize a MusicGen model's output style for a specific genre, instrument, or aesthetic. Adapters are stored in `~/.mlx-audiogen/loras/<name>/` and loaded at generation time.
+
+### Directory structure
+
+```
+~/.mlx-audiogen/loras/
+└── my-jazz-adapter/
+    ├── lora.safetensors   # LoRA weight deltas
+    └── config.json        # Adapter metadata (rank, alpha, targets, base model)
+```
+
+### Using an adapter via the CLI
+
+```bash
+mlx-audiogen \
+  --model musicgen \
+  --prompt "jazz piano trio, late night, relaxed" \
+  --lora my-jazz-adapter \
+  --seconds 15
+```
+
+### Using an adapter via the API
+
+Include the `lora` field in your generation request body:
+
+```json
+{
+  "model": "musicgen",
+  "prompt": "jazz piano trio, late night, relaxed",
+  "lora": "my-jazz-adapter",
+  "seconds": 15
+}
+```
+
+### Listing and managing adapters
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/loras` | List all adapters in `~/.mlx-audiogen/loras/` |
+| `GET` | `/api/loras/{name}` | Get configuration for a specific adapter |
+| `DELETE` | `/api/loras/{name}` | Delete an adapter and its files |
+
+<Warning>
+  LoRA adapters are architecture-specific. An adapter trained on `musicgen-small` (hidden size 1024) cannot be applied to `musicgen-large` (hidden size 2048). The CLI and server both validate compatibility before applying an adapter and will return an error if the hidden sizes don't match.
+</Warning>

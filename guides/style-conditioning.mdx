@@ -1,0 +1,109 @@
+---
+title: "Style-condition MusicGen with a reference audio track"
+description: "Capture the timbre and texture of any WAV file and use it to guide MusicGen output via dual classifier-free guidance and a frozen MERT feature extractor."
+---
+
+Style conditioning lets you give MusicGen a reference audio track and have it reproduce that track's timbre and texture — not its melody — while following your text prompt for structure and content. A frozen MERT audio feature extractor captures the sonic characteristics of your reference, a style transformer processes them into conditioning tokens, and dual classifier-free guidance blends text semantics with audio style during generation.
+
+This requires the `facebook/musicgen-style` weights. Style variants also work without a reference file for standard text-only generation.
+
+## Workflow
+
+<Steps>
+  <Step title="Install the convert extra">
+    You need the convert extra to download and convert model weights from HuggingFace.
+
+    ```bash
+    pip install mlx-audiogen[convert]
+    ```
+  </Step>
+
+  <Step title="Convert the style variant">
+    The style model uses audiocraft's `state_dict.bin` format rather than standard HuggingFace safetensors. The converter handles this automatically.
+
+    ```bash
+    mlx-audiogen-convert \
+      --model facebook/musicgen-style \
+      --output ./converted/musicgen-style
+    ```
+
+    <Note>
+      MERT weights (`m-a-p/MERT-v1-95M`) download separately on first use during generation — not during conversion. The first generation run with a style reference will take longer as these weights are fetched and cached.
+    </Note>
+  </Step>
+
+  <Step title="Choose a style reference">
+    Pick any WAV file whose timbre and texture you want to capture. This can be a drum loop, a synth pad, a recorded instrument, or a full mix. The model extracts high-level timbral features at 75 Hz, so the reference length only needs to be a few seconds.
+  </Step>
+
+  <Step title="Generate with style conditioning">
+    Pass your reference with `--style-audio` and use `--style-coef` to control how strongly the text prompt influences the output relative to the style:
+
+    ```bash
+    mlx-audiogen \
+      --model musicgen \
+      --weights-dir ./converted/musicgen-style \
+      --prompt "upbeat electronic dance music" \
+      --style-audio reference_track.wav \
+      --style-coef 5.0 \
+      --seconds 10 \
+      --output styled.wav
+    ```
+  </Step>
+</Steps>
+
+## Parameters
+
+<ParamField path="--style-audio" type="string">
+  Path to a WAV file whose timbre and texture will guide generation. The file is processed through MERT to extract audio features — it is not used for pitch or rhythm extraction.
+</ParamField>
+
+<ParamField path="--style-coef" type="float" default="5.0">
+  Dual-CFG text influence coefficient. Controls how strongly the text prompt steers output relative to the style reference. Higher values (e.g. `8.0`) make the text prompt dominant; lower values (e.g. `2.0`) let the style reference dominate. The default of `5.0` balances both.
+</ParamField>
+
+<ParamField path="--prompt" type="string" required>
+  Text description of the content. The style reference handles timbre and texture; the prompt handles genre, instruments, structure, and mood.
+</ParamField>
+
+<ParamField path="--seconds" type="float" default="5.0">
+  Duration in seconds. MusicGen style variants produce reliable output up to approximately 30 seconds.
+</ParamField>
+
+<ParamField path="--weights-dir" type="string">
+  Path to the converted style variant weights directory. Must point at a style variant — standard MusicGen weights lack the MERT and style conditioner components.
+</ParamField>
+
+## How style conditioning works
+
+Style conditioning uses a dual classifier-free guidance approach. During each generation step, the model considers both the text prompt and the style reference audio independently, then blends their contributions. The `--style-coef` parameter controls how much weight each gets in the final mix.
+
+Practically, this means generation with `--style-audio` takes roughly three times as long as text-only MusicGen — the extra time is expected, not a bug. The `--guidance-coef` flag (`--guidance-coef`, default 3.0) still controls overall prompt adherence and works in combination with `--style-coef`.
+
+## Tuning `--style-coef`
+
+<AccordionGroup>
+  <Accordion title="High style-coef (7.0–10.0)">
+    The text prompt strongly shapes the genre, instruments, and structure. The style reference contributes broad timbral color but the text description drives content. Use this when you have a specific arrangement in mind and just want a timbral reference.
+  </Accordion>
+  <Accordion title="Default (5.0)">
+    Balanced influence from both text and style. A good starting point for most use cases.
+  </Accordion>
+  <Accordion title="Low style-coef (1.0–3.0)">
+    The style reference dominates. The text prompt provides loose direction but the output texture closely follows the reference. Use this when timbre matching is the primary goal.
+  </Accordion>
+</AccordionGroup>
+
+## Text-only generation with the style variant
+
+You can use the style variant without any reference audio for standard text-to-audio generation:
+
+```bash
+mlx-audiogen \
+  --model musicgen \
+  --weights-dir ./converted/musicgen-style \
+  --prompt "lo-fi hip hop with warm Rhodes and vinyl crackle" \
+  --seconds 15
+```
+
+When no `--style-audio` is provided, the style conditioning path is skipped and generation falls back to standard single-CFG.

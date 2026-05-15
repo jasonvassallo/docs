@@ -1,0 +1,174 @@
+---
+title: 'Convert model weights to MLX with mlx-audiogen-convert'
+description: 'Reference for mlx-audiogen-convert: download and convert MusicGen, Stable Audio, and Demucs weights from HuggingFace to MLX format for local generation.'
+---
+
+Before you can generate audio with a specific model variant, the weights need to be in MLX format. `mlx-audiogen-convert` downloads weights from HuggingFace (or uses a local cache), converts them to MLX-compatible `.safetensors` files, and saves the result to a directory you specify. Many common variants also auto-download pre-converted MLX weights on first use — conversion is only required when you want a specific variant that isn't in the auto-download registry, or when you want to control the numeric precision with `--dtype`.
+
+---
+
+## Parameters
+
+<ParamField path="--model" type="string" required>
+  The HuggingFace repository ID to convert (e.g., `facebook/musicgen-small`) or a Demucs variant name (`htdemucs` or `htdemucs_6s`). See the full list of supported values below. Repos not on the whitelist require `--trust-remote-code`.
+</ParamField>
+
+<ParamField path="--output" type="string" default="mlx_model">
+  Output directory where converted weight files are saved. The directory is created if it doesn't exist. You then pass this path to `--weights-dir` when generating audio.
+</ParamField>
+
+<ParamField path="--dtype" type="string">
+  Numeric precision for the converted weights. Options are `float16`, `bfloat16`, or `float32`. When not specified, the converter uses the source model's native precision. `bfloat16` is a good balance between memory usage and quality on Apple Silicon.
+</ParamField>
+
+<ParamField path="--trust-remote-code" type="boolean">
+  Allow conversion of repo IDs that are not on the built-in whitelist. Use this flag when working with fine-tuned or community variants that follow the same architecture as a supported model.
+</ParamField>
+
+---
+
+## Supported models
+
+### MusicGen
+
+<AccordionGroup>
+  <Accordion title="MusicGen mono">
+    | Repo ID | Output | Notes |
+    |---------|--------|-------|
+    | `facebook/musicgen-small` | Mono 32 kHz | Safetensors format, fastest to convert |
+    | `facebook/musicgen-medium` | Mono 32 kHz | `pytorch_model.bin` format — requires `pip install mlx-audiogen[convert]` |
+    | `facebook/musicgen-large` | Mono 32 kHz | Sharded `pytorch_model.bin` — requires `pip install mlx-audiogen[convert]` |
+  </Accordion>
+  <Accordion title="MusicGen stereo">
+    | Repo ID | Output | Notes |
+    |---------|--------|-------|
+    | `facebook/musicgen-stereo-small` | Stereo 32 kHz | Safetensors format |
+    | `facebook/musicgen-stereo-medium` | Stereo 32 kHz | Safetensors format |
+    | `facebook/musicgen-stereo-large` | Stereo 32 kHz | Sharded safetensors |
+  </Accordion>
+  <Accordion title="MusicGen melody">
+    | Repo ID | Output | Notes |
+    |---------|--------|-------|
+    | `facebook/musicgen-melody` | Mono 32 kHz | Supports `--melody` flag for pitch conditioning |
+    | `facebook/musicgen-melody-large` | Mono 32 kHz | Larger variant of melody model |
+    | `facebook/musicgen-stereo-melody` | Stereo 32 kHz | Stereo output with melody conditioning |
+    | `facebook/musicgen-stereo-melody-large` | Stereo 32 kHz | Larger stereo melody variant |
+  </Accordion>
+  <Accordion title="MusicGen style">
+    | Repo ID | Output | Notes |
+    |---------|--------|-------|
+    | `facebook/musicgen-style` | Mono 32 kHz | Uses audiocraft `state_dict.bin` format; downloads MERT weights separately |
+  </Accordion>
+</AccordionGroup>
+
+### Stable Audio
+
+| Repo ID | Output | Notes |
+|---------|--------|-------|
+| `stabilityai/stable-audio-open-small` | Stereo 44.1 kHz | Freely available |
+| `stabilityai/stable-audio-open-1.0` | Stereo 44.1 kHz | Gated — accept the license on HuggingFace first |
+
+<Warning>
+  `stabilityai/stable-audio-open-1.0` is a gated model. You must visit the [model page on HuggingFace](https://huggingface.co/stabilityai/stable-audio-open-1.0) and accept the license agreement before you can download or convert it. Conversion will fail with an authentication error until you do.
+</Warning>
+
+### Demucs
+
+| Variant | Stems | Notes |
+|---------|-------|-------|
+| `htdemucs` | 4 (drums, bass, vocals, other) | HTDemucs v4 — most common choice |
+| `htdemucs_6s` | 6 (drums, bass, vocals, other, guitar, piano) | Six-stem variant |
+
+---
+
+## Output files
+
+After conversion, the output directory contains the files the generation pipeline needs at runtime:
+
+<Tabs>
+  <Tab title="MusicGen">
+    | File | Description |
+    |------|-------------|
+    | `decoder.safetensors` | Autoregressive transformer decoder weights |
+    | `t5.safetensors` | T5 text encoder weights |
+    | `config.json` | Model configuration |
+    | `t5_config.json` | T5 encoder configuration |
+    | Tokenizer files | T5 tokenizer vocabulary and configuration |
+
+    Melody variants additionally store `audio_enc_to_dec_proj` weights inside `decoder.safetensors` and set `"is_melody": true` in `config.json`.
+  </Tab>
+  <Tab title="Stable Audio">
+    | File | Description |
+    |------|-------------|
+    | `vae.safetensors` | Oobleck VAE decoder weights |
+    | `dit.safetensors` | Diffusion transformer (DiT) weights |
+    | `t5.safetensors` | T5 text encoder weights |
+    | `conditioners.safetensors` | Time conditioning embeddings |
+    | Config files | Model and component configurations |
+  </Tab>
+</Tabs>
+
+<Note>
+  EnCodec weights for MusicGen are not stored in the output directory. They are downloaded separately from `mlx-community/encodec-32khz-float32` at runtime.
+</Note>
+
+---
+
+## Examples
+
+<CodeGroup>
+  ```bash MusicGen small
+  mlx-audiogen-convert \
+    --model facebook/musicgen-small \
+    --output ./converted/musicgen-small
+  ```
+
+  ```bash MusicGen stereo large
+  mlx-audiogen-convert \
+    --model facebook/musicgen-stereo-large \
+    --output ./converted/musicgen-stereo-large
+  ```
+
+  ```bash Stable Audio small
+  mlx-audiogen-convert \
+    --model stabilityai/stable-audio-open-small \
+    --output ./converted/stable-audio
+  ```
+
+  ```bash Demucs
+  mlx-audiogen-convert \
+    --model htdemucs \
+    --output ./converted/demucs
+  ```
+
+  ```bash MusicGen medium with bfloat16
+  mlx-audiogen-convert \
+    --model facebook/musicgen-medium \
+    --output ./converted/musicgen-medium \
+    --dtype bfloat16
+  ```
+</CodeGroup>
+
+After conversion, pass the output directory to the generation command:
+
+```bash
+mlx-audiogen \
+  --model musicgen \
+  --weights-dir ./converted/musicgen-small \
+  --prompt "upbeat synth pop" \
+  --seconds 10
+```
+
+---
+
+## Installing PyTorch for `.bin` format models
+
+`facebook/musicgen-medium` and `facebook/musicgen-large` distribute weights as `pytorch_model.bin` rather than safetensors. The converter handles both formats, but PyTorch must be installed to read `.bin` files:
+
+```bash
+pip install mlx-audiogen[convert]
+```
+
+<Tip>
+  If you only need MusicGen small or the stereo/melody/style variants, PyTorch is not required — they all use the safetensors format and convert without the `[convert]` extra.
+</Tip>

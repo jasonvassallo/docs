@@ -1,0 +1,257 @@
+---
+title: "Prompt enhancement and AI suggestion API endpoints"
+description: "Use /api/suggest, /api/enhance, /api/midi-to-prompt, /api/tags, and /api/health to build smarter prompts and verify server connectivity in MLX AudioGen."
+---
+
+MLX AudioGen includes a set of prompt intelligence endpoints that help you write better generation prompts. You can analyze an existing prompt to get refined suggestions, enhance a prompt using a local LLM, convert a MIDI file into a descriptive text prompt, or retrieve the full tag database for autocomplete. These endpoints work even without an LLM installed — a template fallback handles enhancement and suggestions when no LLM model is selected.
+
+<Note>
+`/api/suggest` and `/api/enhance` both work without a local LLM. If no LLM model is selected via `POST /api/llm/select`, both endpoints use template-based generation as a fallback. Install `mlx-audiogen[llm]` and select a model to enable full LLM-powered enhancement.
+</Note>
+
+---
+
+## POST /api/suggest
+
+Analyze a prompt and return a set of refined, alternative versions. The server parses the prompt for genre, mood, and instrument tags, then generates variations. If a taste profile exists from your generation history, it blends in your top genres as an additional suggestion.
+
+### Request body
+
+<ParamField body="prompt" type="string" required>
+  The base prompt to analyze. Minimum 1 character, maximum 5000 characters.
+</ParamField>
+
+<ParamField body="count" type="integer">
+  Number of suggestions to return. Must be between `1` and `10`.
+
+  Default: `4`
+</ParamField>
+
+### Response
+
+Returns a dictionary with analysis results and an array of suggestion strings.
+
+<ResponseField name="suggestions" type="array">
+  Array of refined prompt strings. The first item may be a taste-profile-blended suggestion if history exists.
+</ResponseField>
+
+<ResponseField name="tags" type="object">
+  Detected tags from the prompt, organized by category (e.g., genres, moods, instruments).
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/suggest \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "jazz piano", "count": 4}'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "http://localhost:8420/api/suggest",
+    json={"prompt": "jazz piano", "count": 4},
+)
+result = resp.json()
+for i, s in enumerate(result["suggestions"], 1):
+    print(f"{i}. {s}")
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "suggestions": [
+    "jazz piano, electronic style",
+    "upbeat jazz piano with swing feel and walking bass",
+    "smooth jazz piano trio, late night lounge atmosphere",
+    "jazz piano ballad, melancholic and introspective",
+    "bebop jazz piano with fast runs and chord substitutions"
+  ],
+  "tags": {
+    "genres": ["jazz"],
+    "instruments": ["piano"],
+    "moods": []
+  }
+}
+```
+
+---
+
+## POST /api/enhance
+
+Enhance a prompt using a local LLM or template fallback. When an LLM is selected, it rewrites the prompt to be more descriptive and musically specific. You can optionally pass `memory_context` — a string summarizing the user's generation history — to personalize the output.
+
+### Request body
+
+<ParamField body="prompt" type="string" required>
+  The prompt to enhance. Minimum 1 character, maximum 5000 characters.
+</ParamField>
+
+<ParamField body="memory_context" type="string">
+  Optional context string summarizing past generations, used to guide the LLM toward the user's preferred style. Maximum 10000 characters.
+
+  Default: `""`
+</ParamField>
+
+### Response
+
+<ResponseField name="enhanced" type="string">
+  The enhanced version of the prompt.
+</ResponseField>
+
+<ResponseField name="original" type="string">
+  The original prompt as submitted.
+</ResponseField>
+
+<ResponseField name="method" type="string">
+  How the enhancement was produced: `"llm"` if a local LLM was used, or `"template"` if the fallback was used.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/enhance \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "sad violin"}'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "http://localhost:8420/api/enhance",
+    json={
+        "prompt": "sad violin",
+        "memory_context": "User often generates jazz and ambient music.",
+    },
+)
+print(resp.json()["enhanced"])
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "enhanced": "melancholic solo violin, slow tempo, minor key, sparse reverb, classical chamber music atmosphere",
+  "original": "sad violin",
+  "method": "template"
+}
+```
+
+---
+
+## POST /api/midi-to-prompt
+
+Analyze a MIDI file and generate a descriptive text prompt that captures its musical characteristics. You submit the path to a `.mid` or `.midi` file on the server's local filesystem, and the server returns a prompt string you can use directly with `POST /api/generate`.
+
+### Request body
+
+<ParamField body="midi_path" type="string" required>
+  Absolute path to a MIDI file on the server's filesystem. Maximum 1024 characters. Must point to a file with a `.mid` or `.midi` extension.
+</ParamField>
+
+### Response
+
+<ResponseField name="prompt" type="string">
+  A descriptive text prompt derived from the MIDI file's content — tempo, key, instrument density, and melodic character.
+</ResponseField>
+
+<ResponseField name="path" type="string">
+  The resolved path to the MIDI file that was analyzed.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/midi-to-prompt \
+  -H "Content-Type: application/json" \
+  -d '{"midi_path": "/Users/you/Music/melody.mid"}'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "http://localhost:8420/api/midi-to-prompt",
+    json={"midi_path": "/Users/you/Music/melody.mid"},
+)
+data = resp.json()
+print("Generated prompt:", data["prompt"])
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "prompt": "120 BPM, C major, melodic piano with chord accompaniment, bright and rhythmic",
+  "path": "/Users/you/Music/melody.mid"
+}
+```
+
+Returns `HTTP 400` if the file does not exist or is not a `.mid` / `.midi` file.
+
+---
+
+## GET /api/tags
+
+Return the full tag database used for prompt autocomplete in the web UI and client tools. The database is organized by category: genres, moods, instruments, and other descriptive tags.
+
+### Response
+
+Returns a dictionary where keys are tag categories and values are arrays of tag strings.
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/tags
+```
+
+```python Python
+import requests
+
+tags = requests.get("http://localhost:8420/api/tags").json()
+print("Genres:", tags.get("genres", [])[:5])
+print("Moods:", tags.get("moods", [])[:5])
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "genres": ["jazz", "electronic", "ambient", "rock", "classical", "hip-hop", "folk"],
+  "moods": ["upbeat", "melancholic", "energetic", "relaxed", "dark", "euphoric"],
+  "instruments": ["piano", "guitar", "drums", "violin", "synthesizer", "bass"]
+}
+```
+
+---
+
+## GET /api/health
+
+Health check endpoint. Returns `HTTP 200` with `{"status": "ok"}` when the server is running. Used by the web UI's transport bar to detect server connectivity.
+
+This endpoint is exempt from rate limiting and is safe to call at high frequency for heartbeat polling.
+
+### Response
+
+<ResponseField name="status" type="string">
+  Always `"ok"` when the server is running.
+</ResponseField>
+
+### Example
+
+```bash
+curl http://localhost:8420/api/health
+# → {"status": "ok"}
+```

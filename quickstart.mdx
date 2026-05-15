@@ -1,0 +1,131 @@
+---
+title: "Generate AI audio on Apple Silicon with MLX AudioGen"
+description: "Install MLX AudioGen, generate your first audio clip from a text prompt, and launch the web UI — running entirely on your Apple Silicon Mac."
+---
+
+MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no usage limits, and no audio data leaving your machine. Follow the steps below to go from a fresh install to audio playing in your browser.
+
+<Note>
+  MLX AudioGen requires an Apple Silicon Mac (M1 or later). MLX uses the Metal GPU and does not support Intel Macs, Linux, or Windows.
+</Note>
+
+<Steps>
+
+  <Step title="Install">
+    Install MLX AudioGen with the `[server]` extra to get the CLI, HTTP server, and web UI in one command:
+
+    <CodeGroup>
+
+    ```bash pip
+    pip install mlx-audiogen[server]
+    ```
+
+    ```bash uv
+    uv pip install mlx-audiogen[server]
+    ```
+
+    ```bash Homebrew
+    brew tap jasonvassallo/tap
+    brew install mlx-audiogen
+    ```
+
+    </CodeGroup>
+
+    If you only need the CLI and audio generation without the web UI, install the base package:
+
+    ```bash
+    pip install mlx-audiogen
+    ```
+
+    See [Installation](/installation) for the full list of extras, including `[llm]` for AI prompt enhancement.
+  </Step>
+
+  <Step title="Generate your first audio clip">
+    Run the CLI with a text prompt. Pre-converted MLX weights auto-download from HuggingFace on first use — no manual conversion step required:
+
+    ```bash
+    mlx-audiogen --model musicgen --prompt "happy upbeat rock song" --seconds 10
+    ```
+
+    The generated audio is saved as `musicgen_output.wav` in your current directory. You should hear output within about 30 seconds on an M1 chip.
+
+    <Tip>
+      For the fastest first-run experience, use MusicGen small (the default). It downloads quickly and generates 10 seconds of audio in roughly 15–20 seconds on most Apple Silicon Macs. Larger variants like `musicgen-medium` and `musicgen-large` produce higher quality but take longer to download and generate.
+    </Tip>
+  </Step>
+
+  <Step title="Try both models">
+    MLX AudioGen supports two distinct generation architectures. Experiment with both to find the right fit for your use case:
+
+    ```bash
+    # MusicGen — autoregressive, 32 kHz mono
+    mlx-audiogen --model musicgen --prompt "happy upbeat rock song" --seconds 10
+
+    # Stable Audio Open — diffusion, 44.1 kHz stereo
+    mlx-audiogen --model stable_audio --prompt "cinematic orchestral tension" --seconds 20
+    ```
+
+    Key differences at a glance:
+
+    | | MusicGen | Stable Audio Open |
+    |---|---|---|
+    | Architecture | Autoregressive | Diffusion |
+    | Sample rate | 32 kHz | 44.1 kHz |
+    | Channels | Mono (stereo variants available) | Stereo |
+    | Max duration | ~30 s | ~47 s |
+    | Key parameter | `--temperature`, `--guidance-coef` | `--steps`, `--cfg-scale` |
+
+    To see every available flag for either model:
+
+    ```bash
+    mlx-audiogen --help
+    ```
+  </Step>
+
+  <Step title="Save to a specific file">
+    By default, output is saved as `musicgen_output.wav` or `stable_audio_output.wav`. Use `--output` to set a custom path and `--seed` to make a generation reproducible:
+
+    ```bash
+    mlx-audiogen \
+      --model musicgen \
+      --prompt "lo-fi hip hop beats, mellow, vinyl crackle" \
+      --seconds 15 \
+      --seed 42 \
+      --output lofi_beat.wav
+    ```
+  </Step>
+
+  <Step title="Launch the web UI">
+    The `mlx-audiogen-app` command starts the HTTP server and opens a DAW-inspired browser interface at `http://localhost:8420`:
+
+    ```bash
+    mlx-audiogen-app
+    ```
+
+    The web UI includes a model selector, prompt textarea with tag autocomplete, parameter sliders, waveform playback, generation history, stem separation, and preset management. The server also exposes a REST API — interactive API docs are available at `http://localhost:8420/docs` while the server is running.
+
+    <Note>
+      The server binds to `127.0.0.1` by default (localhost only). To allow access from other devices on your network, pass `--host 0.0.0.0` to `mlx-audiogen-server`.
+    </Note>
+  </Step>
+
+</Steps>
+
+## Next steps
+
+You have a working setup. Here is where to go next depending on what you want to do:
+
+<CardGroup cols={2}>
+  <Card title="Browse models" icon="microchip" href="/models">
+    Compare all MusicGen variants, Stable Audio Open sizes, and Demucs stem separation models.
+  </Card>
+  <Card title="MusicGen guide" icon="music" href="/guides/musicgen">
+    Melody conditioning, style conditioning, stereo variants, and all MusicGen parameters.
+  </Card>
+  <Card title="Stable Audio guide" icon="waveform" href="/guides/stable-audio">
+    Diffusion steps, CFG scale, negative prompts, and audio-to-audio generation.
+  </Card>
+  <Card title="API reference" icon="code" href="/api/overview">
+    HTTP endpoints for integrating generation into your own tools, plugins, or scripts.
+  </Card>
+</CardGroup>

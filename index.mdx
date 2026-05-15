@@ -1,0 +1,64 @@
+---
+title: "MLX AudioGen: AI audio generation on Apple Silicon"
+description: "MLX AudioGen generates music and audio from text prompts on Apple Silicon — MusicGen, Stable Audio Open, and Demucs stem separation, all on-device."
+---
+
+MLX AudioGen lets you generate professional-quality music and audio from text prompts directly on your Apple Silicon Mac. Using the MLX framework, all inference runs on your local Metal GPU — no API keys, no usage limits, no data leaving your machine. It supports MusicGen (autoregressive), Stable Audio Open (diffusion), and Demucs v4 stem separation, with a full stack of interfaces: CLI, HTTP server, React web UI, VST3/AU plugin, and Max for Live.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Install MLX AudioGen and generate your first audio clip in minutes.
+  </Card>
+  <Card title="Supported Models" icon="microchip" href="/models">
+    Browse MusicGen, Stable Audio Open, and Demucs model variants with specs.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/reference/cli">
+    Complete reference for all CLI commands and parameters.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    HTTP server API for integrating audio generation into your tools.
+  </Card>
+</CardGroup>
+
+## Get started in four steps
+
+<Steps>
+  <Step title="Install">
+    Install via pip with your desired feature set:
+    ```bash
+    pip install mlx-audiogen[server]
+    ```
+  </Step>
+  <Step title="Generate audio from the CLI">
+    Run your first generation — models auto-download on first use:
+    ```bash
+    mlx-audiogen --model musicgen --prompt "upbeat jazz piano" --seconds 10
+    ```
+  </Step>
+  <Step title="Launch the web UI">
+    Open a DAW-style browser interface for interactive generation:
+    ```bash
+    mlx-audiogen-app
+    ```
+  </Step>
+  <Step title="Connect your DAW">
+    Use the VST3/AU plugin or Max for Live device to generate audio directly inside Ableton Live or Logic Pro.
+  </Step>
+</Steps>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="MusicGen" icon="music" href="/guides/musicgen">
+    Autoregressive text-to-audio at 32 kHz — mono, stereo, melody-conditioned, and style-conditioned variants.
+  </Card>
+  <Card title="Stable Audio Open" icon="waveform" href="/guides/stable-audio">
+    Diffusion-based stereo generation at 44.1 kHz with negative prompts and audio-to-audio support.
+  </Card>
+  <Card title="Stem Separation" icon="sliders" href="/guides/stem-separation">
+    Split any audio into drums, bass, vocals, and other with Demucs v4 — fully on-device.
+  </Card>
+  <Card title="DAW Integrations" icon="plug" href="/integrations/vst-au-plugin">
+    Native VST3/AU plugin and Max for Live device for in-session audio generation.
+  </Card>
+</CardGroup>

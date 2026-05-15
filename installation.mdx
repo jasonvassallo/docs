@@ -1,0 +1,144 @@
+---
+title: "Install MLX AudioGen on Apple Silicon — all methods"
+description: "Install MLX AudioGen via pip, Homebrew, uv, or from source. Covers all extras, system prerequisites, and how to verify a working install."
+---
+
+MLX AudioGen is a Python package that installs in one command. You choose which extras to include — the base package gives you the CLI and model generation, while optional extras add the HTTP server, web UI, and LLM prompt enhancement. All methods require an Apple Silicon Mac running macOS.
+
+<Note>
+MLX AudioGen only runs on Apple Silicon (M1 or later). The MLX framework requires Metal GPU acceleration, which is not available on Intel Macs or other platforms. If you run `pip install` on an unsupported machine, the package will install but inference will fail at runtime.
+</Note>
+
+## Prerequisites
+
+Before installing, confirm you have:
+
+- An Apple Silicon Mac (M1, M2, M3, or M4 series)
+- macOS (any recent version)
+- Python 3.11 or later — run `python3 --version` to check
+
+## Choose an install method
+
+<Tabs>
+  <Tab title="pip">
+    pip is the recommended method for most users. Install the base package for CLI-only use, or include extras to add the server and web UI.
+
+    <CodeGroup>
+
+    ```bash CLI only
+    pip install mlx-audiogen
+    ```
+
+    ```bash Server + web UI
+    pip install mlx-audiogen[server]
+    ```
+
+    ```bash LLM prompt enhancement
+    pip install mlx-audiogen[llm]
+    ```
+
+    ```bash Everything
+    pip install mlx-audiogen[server,llm]
+    ```
+
+    </CodeGroup>
+  </Tab>
+  <Tab title="Homebrew">
+    Homebrew installs the CLI and server together. Use `--with-llm` to include LLM prompt enhancement.
+
+    <CodeGroup>
+
+    ```bash CLI + server
+    brew tap jasonvassallo/tap
+    brew install mlx-audiogen
+    ```
+
+    ```bash With LLM enhancement
+    brew tap jasonvassallo/tap
+    brew install mlx-audiogen --with-llm
+    ```
+
+    </CodeGroup>
+  </Tab>
+  <Tab title="uv">
+    If you use [uv](https://github.com/astral-sh/uv) as your Python package manager, install with `uv pip install`:
+
+    ```bash
+    uv pip install mlx-audiogen[server]
+    ```
+
+    You can swap in any combination of extras just like with pip.
+  </Tab>
+  <Tab title="From source">
+    Clone the repository and use `uv sync` to install all dependencies in a virtual environment. This gives you the latest development version and lets you run tests.
+
+    ```bash
+    git clone https://github.com/jasonvassallo/mlx-audiogen
+    cd mlx-audiogen
+    uv sync
+    ```
+
+    Run commands with `uv run` instead of calling binaries directly:
+
+    ```bash
+    uv run mlx-audiogen --model musicgen --prompt "test" --seconds 5
+    ```
+  </Tab>
+</Tabs>
+
+## Extras reference
+
+The base install includes the CLI and all audio generation functionality. Extras add optional features:
+
+| Extra | What it adds | When you need it |
+|---|---|---|
+| (base) | CLI, model generation, model auto-download | Always included |
+| `[server]` | HTTP server, React web UI, async job queue | Web UI, DAW plugin, or API access |
+| `[llm]` | AI prompt enhancement via a local LLM | Prompt suggestions in the web UI |
+| `[convert]` | Convert PyTorch weights to MLX format | Only if converting models yourself |
+
+<Tip>
+If you plan to use the web UI or connect a DAW plugin, install `mlx-audiogen[server]`. The server extra includes everything the base install does plus FastAPI, uvicorn, and the bundled React UI.
+</Tip>
+
+Most users can install with `pip install mlx-audiogen[server]` and have everything they need. The `[convert]` extra requires PyTorch and is only needed if you want to convert model weights yourself rather than using the pre-converted MLX weights from HuggingFace.
+
+## Verify the install
+
+After installing, run the help command to confirm the CLI is available:
+
+```bash
+mlx-audiogen --help
+```
+
+You should see the full list of parameters. If the command is not found, check that your Python environment's `bin` directory is on your `PATH`.
+
+To verify the server install, check that the server command is also available:
+
+```bash
+mlx-audiogen-server --help
+```
+
+## First generation
+
+Models auto-download from HuggingFace on first use. Run a short generation to confirm everything works end-to-end:
+
+```bash
+mlx-audiogen --model musicgen --prompt "acoustic guitar melody" --seconds 5
+```
+
+The first run downloads the pre-converted MLX weights (~500 MB for the small model). Subsequent runs load from the local cache and start immediately.
+
+## Known issues
+
+<AccordionGroup>
+  <Accordion title="Stable Audio 1.0 requires a HuggingFace login">
+    The `stabilityai/stable-audio-open-1.0` model is gated — you must accept the license agreement on the [HuggingFace model page](https://huggingface.co/stabilityai/stable-audio-open-1.0) and log in with `huggingface-cli login` before the weights will download. The small variant (`stabilityai/stable-audio-open-small`) has no gate and downloads automatically.
+  </Accordion>
+  <Accordion title="mlx-audiogen command not found after install">
+    If the CLI command is not found, your Python environment's `bin` directory may not be on your `PATH`. Try running `python3 -m mlx_audiogen.cli.generate` as a fallback, or activate the virtual environment where you installed the package.
+  </Accordion>
+  <Accordion title="PyTorch required for some weight conversions">
+    A few MusicGen variants (medium, large) distribute weights as `pytorch_model.bin` files instead of safetensors. Converting these requires PyTorch, which is not installed by default. Install the convert extra: `pip install mlx-audiogen[convert]`. Pre-converted MLX weights on HuggingFace do not require PyTorch.
+  </Accordion>
+</AccordionGroup>

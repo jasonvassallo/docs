@@ -1,0 +1,117 @@
+---
+title: "Supported models: MusicGen, Stable Audio, and Demucs"
+description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
+---
+
+MLX AudioGen supports three model families: MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, and Demucs v4 for stem separation. Each family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for all variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use.
+
+<Tip>
+If you're using MLX AudioGen for the first time, start with a small model. The `musicgen-small` and `stable-audio-open-small` variants download and run fastest, and they produce good results for most prompts. Switch to larger variants once you're comfortable with the generation workflow.
+</Tip>
+
+## MusicGen
+
+MusicGen is an autoregressive model from Meta that generates audio by predicting audio codec tokens from a text prompt. It encodes your prompt with T5, runs an autoregressive transformer with classifier-free guidance, then decodes tokens back to audio using EnCodec. All MusicGen variants output at 32 kHz.
+
+### Variants
+
+| Model | Size variants | Output | Conditioning |
+|---|---|---|---|
+| MusicGen | small, medium, large | Mono | Text |
+| MusicGen Stereo | small, medium, large | Stereo | Text |
+| MusicGen Melody | base, large | Mono | Text + melody audio |
+| MusicGen Stereo Melody | base, large | Stereo | Text + melody audio |
+| MusicGen Style | base | Mono | Text + style audio |
+
+### HuggingFace repo IDs
+
+Use these repo IDs with `mlx-audiogen-convert` to convert weights yourself, or they auto-resolve when using pre-built MLX weights:
+
+| Variant | HuggingFace repo |
+|---|---|
+| MusicGen small | `facebook/musicgen-small` |
+| MusicGen medium | `facebook/musicgen-medium` |
+| MusicGen large | `facebook/musicgen-large` |
+| MusicGen Stereo small | `facebook/musicgen-stereo-small` |
+| MusicGen Stereo medium | `facebook/musicgen-stereo-medium` |
+| MusicGen Stereo large | `facebook/musicgen-stereo-large` |
+| MusicGen Melody base | `facebook/musicgen-melody` |
+| MusicGen Melody large | `facebook/musicgen-melody-large` |
+| MusicGen Stereo Melody base | `facebook/musicgen-stereo-melody` |
+| MusicGen Stereo Melody large | `facebook/musicgen-stereo-melody-large` |
+| MusicGen Style base | `facebook/musicgen-style` |
+
+### Choosing a MusicGen variant
+
+- **small** — fastest generation, lowest memory use, good for prototyping and short clips
+- **medium** — balanced quality and speed, suitable for most production uses
+- **large** — best quality, slower generation, highest memory use
+- **stereo variants** — use 8 codebooks instead of 4 for left/right channel separation; useful when output will be played back on stereo systems
+- **melody variants** — add `--melody my_audio.wav` to condition generation on the pitch contour of a reference file; works without `--melody` for text-only generation
+- **style variants** — add `--style-audio reference.wav` to match the timbre and texture of a reference clip using MERT feature extraction; `--style-coef` controls how strongly the text prompt influences the output (default: 5.0)
+
+## Stable Audio Open
+
+Stable Audio Open is a diffusion-based model from Stability AI that generates stereo audio at 44.1 kHz. It encodes your prompt with T5, applies rectified flow ODE sampling through a Diffusion Transformer (DiT), then decodes with an Oobleck VAE. The diffusion approach lets you control generation quality vs. speed through the number of steps and CFG scale.
+
+### Variants
+
+| Variant | Sample rate | Output | Notes |
+|---|---|---|---|
+| small | 44.1 kHz | Stereo | Open access, downloads automatically |
+| 1.0 | 44.1 kHz | Stereo | Larger DiT, dual time conditioning — gated model |
+
+### HuggingFace repo IDs
+
+| Variant | HuggingFace repo |
+|---|---|
+| Stable Audio Open small | `stabilityai/stable-audio-open-small` |
+| Stable Audio Open 1.0 | `stabilityai/stable-audio-open-1.0` |
+
+<Warning>
+Stable Audio Open 1.0 is a gated model. Before you can download or convert the weights, you must accept the license agreement on the [HuggingFace model page](https://huggingface.co/stabilityai/stable-audio-open-1.0) and authenticate with `huggingface-cli login`. The small variant has no gate and downloads automatically.
+</Warning>
+
+### Stable Audio parameters
+
+Stable Audio uses different generation parameters than MusicGen:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `--steps` | 8 | Number of diffusion steps — more steps = higher quality, slower generation |
+| `--cfg-scale` | 6.0 | CFG guidance scale — higher values follow the prompt more strictly |
+| `--sampler` | `euler` | ODE sampler — `euler` or `rk4` |
+| `--negative-prompt` | `""` | Describe what you don't want in the output |
+
+## Demucs v4
+
+Demucs v4 (HTDemucs) is Meta's hybrid source separation model. It takes a stereo audio file and splits it into separate stems. Unlike the generation models, Demucs does not take a text prompt — it analyzes the audio signal directly.
+
+### Variants
+
+| Variant | Stems | Output | Description |
+|---|---|---|---|
+| `htdemucs` | 4 (drums, bass, vocals, other) | 44.1 kHz stereo | Standard separation |
+| `htdemucs_6s` | 6 (drums, bass, vocals, other, guitar, piano) | 44.1 kHz stereo | Adds guitar and piano stems |
+
+Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Net connected by a CrossTransformer. Pre-converted MLX weights auto-download from [HuggingFace](https://huggingface.co/jasonvassallo/demucs-htdemucs-mlx) when you first run separation.
+
+## Picking the right model
+
+<AccordionGroup>
+  <Accordion title="I want to generate music from a text description">
+    Start with **MusicGen small** for fast results. Use **MusicGen large** or **MusicGen Stereo large** when you need higher quality or stereo output for production use.
+  </Accordion>
+  <Accordion title="I want stereo output at CD quality (44.1 kHz)">
+    Use **Stable Audio Open small** or **Stable Audio Open 1.0**. Stable Audio always outputs stereo at 44.1 kHz, compared to MusicGen's 32 kHz.
+  </Accordion>
+  <Accordion title="I want to guide generation with an existing melody or hummed idea">
+    Use **MusicGen Melody** (base or large). Pass your reference audio with `--melody my_melody.wav`. The pipeline extracts the pitch contour from your file and uses it to condition generation alongside your text prompt.
+  </Accordion>
+  <Accordion title="I want to match the timbre or texture of a reference track">
+    Use **MusicGen Style**. Pass your reference audio with `--style-audio reference.wav`. MERT extracts timbral features from the reference and blends them with your text prompt using dual classifier-free guidance.
+  </Accordion>
+  <Accordion title="I want to split a mixed track into individual stems">
+    Use **HTDemucs** for 4-stem separation (drums, bass, vocals, other), or **htdemucs_6s** if you also need guitar and piano isolated separately.
+  </Accordion>
+</AccordionGroup>

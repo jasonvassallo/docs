@@ -1,0 +1,74 @@
+---
+title: "What is MLX AudioGen? On-device audio generation"
+description: "Generate music and audio on your Apple Silicon Mac with MusicGen, Stable Audio Open, and Demucs — no cloud, no API keys, no usage limits."
+---
+
+MLX AudioGen is an on-device AI audio generation toolkit built for Apple Silicon. It brings together three state-of-the-art models — MusicGen, Stable Audio Open, and Demucs v4 — and runs all inference locally through Apple's Metal GPU using the MLX framework. Whether you're a musician sketching ideas, a developer building audio tools, or a producer working inside a DAW, you get fast, private, unlimited generation without touching a cloud API.
+
+## What you can do
+
+<CardGroup cols={2}>
+  <Card title="Generate music from text" icon="music" href="/guides/musicgen">
+    Describe a sound and MusicGen produces a WAV clip — mono or stereo, with optional melody or style conditioning from a reference audio file.
+  </Card>
+  <Card title="Diffusion-based stereo audio" icon="waveform" href="/guides/stable-audio">
+    Use Stable Audio Open for 44.1 kHz stereo output with negative prompts, adjustable diffusion steps, and audio-to-audio transformation.
+  </Card>
+  <Card title="Stem separation" icon="sliders" href="/guides/stem-separation">
+    Feed Demucs v4 any audio file and get back separate drums, bass, vocals, and other stems — all on-device.
+  </Card>
+  <Card title="DAW integration" icon="plug" href="/integrations/vst-au-plugin">
+    Use the VST3/AU plugin or Max for Live device to trigger generation without leaving Ableton Live or Logic Pro.
+  </Card>
+</CardGroup>
+
+## What makes it different
+
+Every other AI audio tool sends your prompts and audio to a remote server. MLX AudioGen runs entirely on your Mac. Inference happens on the Metal GPU via the [MLX framework](https://github.com/ml-explore/mlx), which means:
+
+- **No cloud dependency** — works offline, no API keys or accounts required
+- **No usage limits** — generate as much as you want
+- **Private by default** — your prompts and audio never leave your machine
+- **Full-stack access** — CLI, HTTP server, React web UI, VST3/AU plugin, and Max for Live all included
+
+## Supported models
+
+| Model family | Variants | Output | Sample rate |
+|---|---|---|---|
+| MusicGen | small, medium, large (mono + stereo) | WAV | 32 kHz |
+| MusicGen Melody | base, large | Mono WAV | 32 kHz |
+| MusicGen Style | base | Mono WAV | 32 kHz |
+| Stable Audio Open | small, 1.0 | Stereo WAV | 44.1 kHz |
+| Demucs v4 | htdemucs, htdemucs_6s | 4–6 stems | 44.1 kHz |
+
+Pre-converted MLX weights for all variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and auto-download on first use.
+
+## System requirements
+
+<Note>
+MLX AudioGen requires an Apple Silicon Mac. The MLX framework uses Metal GPU acceleration, which is only available on M1 or later chips. Intel Macs and non-Apple hardware are not supported.
+</Note>
+
+| Requirement | Minimum |
+|---|---|
+| Hardware | Apple Silicon (M1 or later) |
+| OS | macOS |
+| Python | 3.11 or later |
+| Disk | Varies by model — small models ~500 MB, large models ~4 GB |
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Install MLX AudioGen and generate your first audio clip in under five minutes.
+  </Card>
+  <Card title="Supported models" icon="microchip" href="/models">
+    Compare all model variants, sample rates, and conditioning options to pick the right one.
+  </Card>
+  <Card title="MusicGen guide" icon="music" href="/guides/musicgen">
+    Learn all MusicGen parameters and conditioning modes with copy-pasteable examples.
+  </Card>
+  <Card title="Stable Audio guide" icon="waveform" href="/guides/stable-audio">
+    Use diffusion steps, CFG scale, and negative prompts to shape Stable Audio output.
+  </Card>
+</CardGroup>

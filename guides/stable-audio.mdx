@@ -1,0 +1,119 @@
+---
+title: "Generate stereo audio with Stable Audio Open on Mac"
+description: "Use Stable Audio Open's diffusion pipeline to generate 44.1 kHz stereo WAV files on Apple Silicon, with audio-to-audio and negative prompt support."
+---
+
+Stable Audio Open is a diffusion-based model that generates 44.1 kHz stereo WAV files from text prompts. Unlike MusicGen's autoregressive approach, it works by iteratively denoising audio through a DiT (Diffusion Transformer) guided by a T5 text encoder, then decodes the result through an Oobleck VAE. The stereo output and higher sample rate make it well-suited for sound design, ambient textures, and cinematic content.
+
+## Basic usage
+
+```bash
+mlx-audiogen --model stable_audio \
+  --prompt "cinematic orchestral tension building" \
+  --seconds 20
+```
+
+Weights auto-download from HuggingFace on first use. The output is a stereo 44.1 kHz WAV file.
+
+## Parameters
+
+<ParamField path="--prompt" type="string" required>
+  Text description of the audio you want to generate. Stable Audio responds well to descriptive language about texture, mood, instrumentation, and sonic environment.
+</ParamField>
+
+<ParamField path="--negative-prompt" type="string" default='""'>
+  Describe what you want to avoid in the output. For example, `"distortion, noise, clipping"` or `"vocals, drums"`. This uses classifier-free guidance to steer away from these characteristics.
+</ParamField>
+
+<ParamField path="--seconds" type="float" default="5.0">
+  Duration of the generated audio in seconds. Stable Audio supports up to approximately 47 seconds.
+</ParamField>
+
+<ParamField path="--steps" type="integer" default="8">
+  Number of diffusion denoising steps. More steps produce higher-quality output at the cost of longer generation time. Values between 8 and 50 cover most use cases.
+</ParamField>
+
+<ParamField path="--cfg-scale" type="float" default="6.0">
+  Classifier-free guidance scale. Higher values make the output adhere more closely to your prompt. Values between 4.0 and 10.0 are typical.
+</ParamField>
+
+<ParamField path="--sampler" type="string" default="euler">
+  ODE sampler to use for diffusion. Options are `euler` (faster, good quality) or `rk4` (higher-order, sometimes sharper at low step counts).
+</ParamField>
+
+<ParamField path="--seed" type="integer">
+  Random seed for reproducible output. Omit for a different result each run.
+</ParamField>
+
+<ParamField path="--weights-dir" type="string">
+  Path to a local directory of pre-converted MLX weights. Omit to auto-download from HuggingFace.
+</ParamField>
+
+## Variants
+
+Stable Audio Open comes in two variants:
+
+| Variant | HuggingFace repo | Notes |
+|---------|-----------------|-------|
+| `small` | `stabilityai/stable-audio-open-small` | Open access, downloads immediately |
+| `1.0` | `stabilityai/stable-audio-open-1.0` | Larger DiT, dual time conditioning — gated |
+
+<Warning>
+  **Stable Audio Open 1.0 is a gated model.** You must visit [huggingface.co/stabilityai/stable-audio-open-1.0](https://huggingface.co/stabilityai/stable-audio-open-1.0) and accept the license agreement before you can download or convert its weights. Attempting conversion without accepting the license will fail with an authentication error.
+</Warning>
+
+To convert a variant:
+
+<CodeGroup>
+
+```bash small
+pip install mlx-audiogen[convert]
+mlx-audiogen-convert --model stabilityai/stable-audio-open-small \
+  --output ./converted/stable-audio-small
+```
+
+```bash 1.0 (gated)
+pip install mlx-audiogen[convert]
+# Accept the license on HuggingFace first, then:
+mlx-audiogen-convert --model stabilityai/stable-audio-open-1.0 \
+  --output ./converted/stable-audio-1.0
+```
+
+</CodeGroup>
+
+## Audio-to-audio generation
+
+Stable Audio can use an existing audio file as a reference to guide generation. The model encodes the reference through its VAE, then uses it as a starting point for the diffusion process.
+
+```bash
+mlx-audiogen --model stable_audio \
+  --prompt "same melody but with electric guitar" \
+  --reference-audio original.wav \
+  --reference-strength 0.6 \
+  --seconds 20
+```
+
+<ParamField path="--reference-audio" type="string">
+  Path to a WAV file to use as the audio-to-audio reference. The file is resampled to 44.1 kHz internally if needed.
+</ParamField>
+
+<ParamField path="--reference-strength" type="float" default="0.7">
+  Controls how much the output deviates from the reference. `0.0` copies the reference almost exactly; `1.0` ignores it entirely and generates from noise. Values around `0.5–0.7` preserve the structure while applying the prompt's transformation.
+</ParamField>
+
+## Tips for better results
+
+<AccordionGroup>
+  <Accordion title="Step count vs. speed">
+    The default of 8 steps is fast and good for previewing. Raise to 20–30 for final renders. Beyond 50 steps, quality improvements become marginal.
+  </Accordion>
+  <Accordion title="Using negative prompts effectively">
+    Negative prompts are most effective when they describe specific sonic qualities rather than genres. `"harsh transients, distortion, clipping"` works better than `"bad audio"`.
+  </Accordion>
+  <Accordion title="Sampler choice">
+    `euler` is a good default. Try `rk4` when you're using fewer steps (8–12) and want slightly sharper output — it uses a higher-order integration method that can be more accurate with fewer evaluations.
+  </Accordion>
+  <Accordion title="Audio-to-audio strength">
+    For arrangement-style transforms (e.g. changing instruments while keeping the melody), start with `--reference-strength 0.5`. For texture-only changes (e.g. adding reverb character), try `0.2–0.4`.
+  </Accordion>
+</AccordionGroup>

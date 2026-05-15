@@ -1,0 +1,106 @@
+{
+  "projectType": "ai-ml",
+  "projectName": "MLX AudioGen",
+  "projectDescription": "Text-to-audio generation and stem separation on Apple Silicon using MLX, supporting MusicGen, Stable Audio Open, and Demucs v4 — all running on-device via Metal GPU.",
+  "theme": "luma",
+  "primaryColor": "#f8c61e",
+  "lightColor": "#fbf9ec",
+  "darkColor": "#4e412f",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation",
+              "models"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/musicgen",
+              "guides/stable-audio",
+              "guides/melody-conditioning",
+              "guides/style-conditioning",
+              "guides/stem-separation",
+              "guides/lora"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/web-ui",
+              "integrations/vst-au-plugin",
+              "integrations/max-for-live"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/cli",
+              "reference/conversion",
+              "reference/configuration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "HTTP Server",
+            "pages": [
+              "api/overview",
+              "api/generation",
+              "api/models",
+              "api/prompts",
+              "api/presets",
+              "api/stems"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "On-device audio generation via Apple Silicon Metal GPU — no cloud API required",
+    "MusicGen support: mono, stereo, melody-conditioned, and style-conditioned variants",
+    "Stable Audio Open: diffusion-based stereo generation at 44.1 kHz",
+    "Demucs v4 stem separation: drums, bass, vocals, and other",
+    "CLI, HTTP server, React web UI, VST3/AU plugin, and Max for Live integration",
+    "AI prompt enhancement via local LLM (mlx-lm)",
+    "LoRA fine-tuning support for MusicGen",
+    "MIDI export and MIDI-to-prompt conversion"
+  ],
+  "publicApiSurface": [
+    "mlx-audiogen (CLI: generate audio)",
+    "mlx-audiogen-convert (CLI: convert model weights)",
+    "mlx-audiogen-server (CLI: launch HTTP server)",
+    "mlx-audiogen-app (CLI: launch server + web UI)",
+    "POST /api/generate",
+    "GET /api/status/{id}",
+    "GET /api/audio/{id}",
+    "GET /api/midi/{id}",
+    "GET /api/models",
+    "GET /api/jobs",
+    "POST /api/suggest",
+    "POST /api/enhance",
+    "POST /api/midi-to-prompt",
+    "POST /api/separate/{id}",
+    "GET /api/presets",
+    "POST /api/presets/{name}",
+    "GET /api/presets/{name}",
+    "GET /api/tags",
+    "GET /api/llm/models",
+    "POST /api/llm/select",
+    "GET /api/memory",
+    "GET /api/settings",
+    "POST /api/settings",
+    "GET /api/health"
+  ]
+}

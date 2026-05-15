@@ -1,0 +1,112 @@
+---
+title: "Apply LoRA adapters to customize MusicGen audio output"
+description: "Load a pre-trained LoRA adapter at generation time to shift MusicGen's style, genre, or sound without retraining the full model weights."
+---
+
+LoRA (Low-Rank Adaptation) adapters let you change MusicGen's output style without touching the base model weights. A LoRA adapter stores a small set of low-rank parameter updates for specific attention projections in the transformer. At generation time, these updates are merged into the model's forward pass, shifting its output toward whatever style or genre the adapter was trained on.
+
+Adapters are stored in `~/.mlx-audiogen/loras/` by default, or you can point to any directory with an explicit path. The adapter's `hidden_size` must match the base model's; compatibility is checked automatically before generation starts.
+
+## Apply a LoRA adapter
+
+<Steps>
+  <Step title="Locate your adapter">
+    LoRA adapters are directories containing a `lora.safetensors` file and a `config.json`. By default, the CLI looks for named adapters in `~/.mlx-audiogen/loras/`:
+
+    ```
+    ~/.mlx-audiogen/loras/
+    └── my-lofi-lora/
+        ├── lora.safetensors
+        └── config.json
+    ```
+
+    If your adapter is stored elsewhere, use `--lora-path` with an explicit directory path.
+  </Step>
+
+  <Step title="Generate with a named adapter">
+    Pass the adapter name with `--lora`. The CLI resolves it against `~/.mlx-audiogen/loras/<name>`:
+
+    ```bash
+    mlx-audiogen --model musicgen \
+      --prompt "lofi hip hop beat" \
+      --lora my-lofi-lora \
+      --seconds 20
+    ```
+  </Step>
+
+  <Step title="Or use an explicit path">
+    Pass a directory path directly with `--lora-path`:
+
+    ```bash
+    mlx-audiogen --model musicgen \
+      --prompt "lofi hip hop beat" \
+      --lora-path ./path/to/my-lora \
+      --seconds 20
+    ```
+
+    This is useful when sharing adapters across machines, when working with project-local adapters, or when the adapter is not in the default loras directory.
+  </Step>
+</Steps>
+
+## Parameters
+
+<ParamField path="--lora" type="string">
+  Name of a LoRA adapter stored in `~/.mlx-audiogen/loras/<name>/`. The CLI resolves the full path automatically. Use either `--lora` or `--lora-path`, not both.
+</ParamField>
+
+<ParamField path="--lora-path" type="string">
+  Explicit filesystem path to a LoRA adapter directory. The directory must contain `lora.safetensors` and `config.json`. Use either `--lora-path` or `--lora`, not both.
+</ParamField>
+
+## Adapter config fields
+
+Every adapter directory contains a `config.json` that the CLI reads to validate compatibility and set up the adapter. The key fields are:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Human-readable adapter name |
+| `base_model` | string | HuggingFace repo the adapter was trained against (e.g. `facebook/musicgen-small`) |
+| `hidden_size` | integer | Model hidden dimension — must match the base model you're loading |
+| `rank` | integer | LoRA rank (8, 16, or 32 depending on training profile) |
+| `alpha` | float | LoRA scaling factor (typically 2× the rank) |
+| `targets` | array | Attention projection layers the adapter modifies |
+
+### Target layers
+
+Adapters can target any combination of:
+
+- `self_attn.q_proj` — self-attention query projection
+- `self_attn.k_proj` — self-attention key projection
+- `self_attn.v_proj` — self-attention value projection
+- `self_attn.out_proj` — self-attention output projection
+- `encoder_attn.q_proj` — cross-attention query projection
+- `encoder_attn.k_proj` — cross-attention key projection
+- `encoder_attn.v_proj` — cross-attention value projection
+- `encoder_attn.out_proj` — cross-attention output projection
+
+<AccordionGroup>
+  <Accordion title="quick profile (rank=8)">
+    Targets `self_attn.q_proj` and `self_attn.v_proj` only. Smallest adapter size, fastest to apply, lightest style shift. Good for subtle genre nudges.
+  </Accordion>
+  <Accordion title="balanced profile (rank=16)">
+    Targets `self_attn.q_proj`, `self_attn.v_proj`, and `self_attn.out_proj`. The default for most adapters. Covers the most impactful projection layers without adding cross-attention overhead.
+  </Accordion>
+  <Accordion title="deep profile (rank=32)">
+    Targets all self-attention and cross-attention projections. Largest adapter, strongest style shift, best for training on a very specific and distinctive style.
+  </Accordion>
+</AccordionGroup>
+
+## Compatibility checks
+
+When you pass `--lora` or `--lora-path`, the CLI:
+
+1. Loads the `config.json` from the adapter directory.
+2. Reads the `hidden_size` from the config.
+3. Compares it against the loaded model's `decoder.hidden_size`.
+4. Exits with an error if they do not match.
+
+If you get a `hidden_size` mismatch error, check that your adapter was trained against the same model size as the one you are loading. An adapter trained on `musicgen-small` (hidden size 1024) cannot be applied to `musicgen-large` (hidden size 1536).
+
+<Warning>
+  Always verify that the `base_model` field in `config.json` matches the weights you are loading. Applying an adapter trained on a different base model may produce degraded output even if `hidden_size` happens to match.
+</Warning>
