@@ -73,6 +73,24 @@ mlx-audiogen-server \
 
   <Accordion title="Playback and waveform visualization">
     Generated audio plays back with a Web Audio API waveform display. Playback supports **BPM-synced looping** — the loop boundaries snap to your BPM grid so the audio cycles cleanly. You can switch between **time-stretch** mode (tempo changes without pitch shift) and **vinyl pitch** mode (pitch and tempo shift together, like a record player).
+
+    The waveform itself uses **per-column spectral coloring** — a short STFT runs on the decoded buffer and colors each pixel column by its dominant frequency band (bass / low-mid / mid / high-mid / high). Three palettes are available via the palette toggle: `classic` (warm-to-cool gradient, default), `viridis` (colorblind-safe), and `orange` (single-color). Selection drag (orange highlight), Cmd+scroll zoom, and scroll-to-pan all work the same as in the spectrogram view.
+  </Accordion>
+
+  <Accordion title="Spectrogram view">
+    Each playback canvas has a **`[Wave]` / `[Spec]` toggle** in its toolbar. Switch to spectrogram mode to see a frequency-vs-time heatmap of the clip — bass content sits at the bottom, high-frequency transients at the top, with the playhead and any selection highlight overlaid the same way they appear in waveform mode.
+
+    The spectrogram is rendered on the GPU via WebGL2 with a Canvas2D fallback for browsers without WebGL2 support. Compute happens once per clip in idle time, so toggling between views is instant after the first switch.
+
+    Three controls appear next to the toggle when you're in spectrogram mode:
+
+    - **Palette** — cycles `magma` (default), `viridis`, and `grayscale`. Independent of the waveform palette.
+    - **Sensitivity slider** — adjusts the dynamic range floor from 40 dB to 100 dB. Higher values reveal quieter content; lower values emphasize transients.
+    - **Channel mode** (stereo clips only) — cycles `Mono` (mid mix), `L+R` (split-canvas left/right), and `M+S` (mono on top, side channel on bottom).
+
+    Click **`[⤢ Expand]`** to fill the viewport with the player — the spectrogram canvas grows from its default 56-pixel height to the full window so frequency detail is much more readable. Press `Esc` or click `[⤡ Collapse]` to return to the inline view.
+
+    Settings persist across sessions via IndexedDB — your preferred view mode, palette, sensitivity, and channel mode are restored automatically next time you open the UI.
   </Accordion>
 
   <Accordion title="Transport bar">
