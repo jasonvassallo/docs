@@ -102,7 +102,7 @@ MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no
     mlx-audiogen-app
     ```
 
-    The web UI includes a model selector, prompt textarea with tag autocomplete, parameter sliders, waveform playback, generation history, stem separation, and preset management. The server also exposes a REST API — interactive API docs are available at `http://localhost:8420/docs` while the server is running.
+    The web UI includes a model selector, prompt textarea with tag autocomplete, parameter sliders, waveform playback, generation history, stem separation, and preset management. The server also exposes a REST API — interactive API docs are available at `http://localhost:8420/api-docs` (Swagger UI) and `http://localhost:8420/redoc` (ReDoc) while the server is running.
 
     <Note>
       The server binds to `127.0.0.1` by default (localhost only). To allow access from other devices on your network, pass `--host 0.0.0.0` to `mlx-audiogen-server`.

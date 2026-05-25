@@ -14,7 +14,12 @@ http://localhost:8420
 The default port is `8420`. Pass `--port <number>` to `mlx-audiogen-server` to change it.
 
 <Info>
-Interactive API documentation (Swagger UI) is available at `http://localhost:8420/docs` whenever the server is running. You can explore and call every endpoint directly from the browser.
+Interactive API documentation is available whenever the server is running:
+
+- **Swagger UI** — [`http://localhost:8420/api-docs`](http://localhost:8420/api-docs) — explore and call every endpoint directly from the browser.
+- **ReDoc** — [`http://localhost:8420/redoc`](http://localhost:8420/redoc) — a read-only, reference-style view of the same OpenAPI schema.
+
+The `/docs` path is reserved for this user documentation site, so Swagger UI lives at `/api-docs` instead of the FastAPI default.
 </Info>
 
 ## Authentication
