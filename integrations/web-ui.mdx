@@ -65,6 +65,8 @@ mlx-audiogen-server \
 
   <Accordion title="AI prompt enhancement">
     When you install the `llm` extra, the UI gains an **Enhance** button. Click it to run your prompt through a local LLM model — the enhanced version appears in a preview pane where you can accept it, edit it, or keep your original prompt. No data leaves your machine.
+
+    Both text-only models (via `mlx-lm`) and vision-language models such as vision-capable Qwen (via `mlx-vlm`) are supported. The server picks the right backend automatically based on the selected model, and falls back to a template-based enhancement if neither backend can load it — the **Enhance** button never breaks the UI.
   </Accordion>
 
   <Accordion title="Prompt suggestions">
