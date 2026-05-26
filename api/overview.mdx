@@ -46,7 +46,7 @@ Requests that exceed the limit receive `HTTP 429` with a `detail` message.
 <Info>
 Loopback clients are never throttled — the local app and bundled web UI talking to `localhost` bypass the limiter entirely. Rate limits only apply to remote callers when the server is bound to `0.0.0.0`.
 
-Status polling (`GET /api/status/{id}`) and the job list (`GET /api/jobs`) are exempt for remote clients too, so polling a long-running job every ~500 ms will not trip the 60/min general limit. The strict 10/min limit on `POST /api/generate` is unchanged.
+Status polling (`GET /api/status/{id}`) and the job list (`GET /api/jobs`) are also exempt for remote clients. Polling a long-running job every ~500 ms will not trip the 60/min general limit. The strict 10/min limit on `POST /api/generate` is unchanged.
 </Info>
 
 ## Async job design
