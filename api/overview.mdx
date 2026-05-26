@@ -38,9 +38,25 @@ The server enforces per-IP sliding-window rate limits to protect public deployme
 |---|---|
 | `POST /api/generate` | 10 requests per minute |
 | All other `/api/*` endpoints | 60 requests per minute |
-| `/api/health`, `/api/system` | Exempt |
+| `/api/health`, `/api/system`, `/api/jobs`, `/api/status/{id}` | Exempt |
 
 Requests that exceed the limit receive `HTTP 429` with a `detail` message.
+
+### Exempt endpoints
+
+A few endpoints bypass rate limiting because the web UI and DAW plugin poll them at high frequency during generation:
+
+- `/api/health` and `/api/system` — heartbeat and capability probes.
+- `/api/jobs` — job list refresh.
+- `/api/status/{id}` — status polling. The web UI hits this endpoint roughly twice per second while a job is running to render the progress bar.
+
+### Loopback and proxy behavior
+
+The server identifies clients by IP so that one noisy client cannot starve others:
+
+- **Loopback (no proxy)** — requests that arrive directly from `127.0.0.1` or `::1` with no forwarding header are never throttled. This keeps the bundled web UI, Max for Live, and local scripts responsive on a single machine.
+- **Behind a proxy or Cloudflare Tunnel** — the real client IP is read from `CF-Connecting-IP` first, then `X-Forwarded-For`. Rate limits apply per real client, not per proxy hop.
+- **Spoofing protection** — if a forwarding header is present, the request is treated as proxied even when the immediate socket is loopback. A remote client cannot forge a `127.0.0.1` forwarding value to earn the loopback exemption.
 
 ## Async job design
 
