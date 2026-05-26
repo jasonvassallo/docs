@@ -109,7 +109,7 @@ Enhance a prompt using a local LLM or template fallback. When an LLM is selected
 </ResponseField>
 
 <ResponseField name="method" type="string">
-  How the enhancement was produced: `"llm"` if a local LLM was used (either an `mlx-lm` text model or an `mlx-vlm` vision-language model run in text-only mode), or `"template"` if the fallback was used. The fallback also covers the case where the selected model cannot be loaded by either backend, so this endpoint never raises a raw import error.
+  How the enhancement was produced. Returns `"llm"` if a local LLM was used — either an `mlx-lm` text model or an `mlx-vlm` vision-language model run in text-only mode. Returns `"template"` if the fallback was used, including when the selected model cannot be loaded by either backend, so this endpoint never raises a raw import error.
 </ResponseField>
 
 ### Example
