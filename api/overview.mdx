@@ -1,6 +1,6 @@
 ---
 title: "MLX AudioGen HTTP server API — complete reference"
-description: "Complete reference for the MLX AudioGen HTTP server API — a FastAPI server exposing async audio generation, job polling, model management, and prompt tools."
+description: "Reference for the MLX AudioGen HTTP server API: async audio generation, job polling, rate limits, model management, and prompt enhancement endpoints."
 ---
 
 The MLX AudioGen HTTP server exposes a REST API that lets you submit text-to-audio generation requests, poll job progress, download results, and manage models — all over plain HTTP. You POST a prompt to get a job ID, poll until the job is done, then download your audio file. The server is built with FastAPI and runs locally on your Apple Silicon Mac; no cloud service or authentication is required.

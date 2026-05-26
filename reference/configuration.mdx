@@ -132,7 +132,7 @@ pip install mlx-audiogen[llm]
 The `[llm]` extra bundles two MLX inference backends:
 
 - **`mlx-lm`** — handles standard text LLMs (Llama, Mistral, Phi, Qwen text variants, and similar). This is the default path for prompt enhancement.
-- **`mlx-vlm`** — a vision-language fallback used for Qwen VL models that `mlx-lm` cannot load. The server transparently routes to `mlx-vlm` when it detects a vision-language model so you can use the same selection flow for either family.
+- **`mlx-vlm`** — a vision-language fallback used for Qwen VL models that `mlx-lm` cannot load. The server routes to `mlx-vlm` automatically when it detects a vision-language model, so you select either family through the same flow.
 
 LLM models are auto-discovered from your HuggingFace model cache. Once at least one compatible model is available, you can select it in the web UI or via the API.
 
