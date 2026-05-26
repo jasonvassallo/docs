@@ -6,7 +6,7 @@ description: "Use /api/suggest, /api/enhance, /api/midi-to-prompt, /api/tags, an
 MLX AudioGen includes a set of prompt intelligence endpoints that help you write better generation prompts. You can analyze an existing prompt to get refined suggestions, enhance a prompt using a local LLM, convert a MIDI file into a descriptive text prompt, or retrieve the full tag database for autocomplete. These endpoints work even without an LLM installed — a template fallback handles enhancement and suggestions when no LLM model is selected.
 
 <Note>
-`/api/suggest` and `/api/enhance` both work without a local LLM. If no LLM model is selected via `POST /api/llm/select`, both endpoints use template-based generation as a fallback. Install `mlx-audiogen[llm]` and select a model to enable full LLM-powered enhancement.
+`/api/suggest` and `/api/enhance` both work without a local LLM. If no LLM model is selected via `POST /api/llm/select`, both endpoints use template-based generation as a fallback. Install `mlx-audiogen[llm]` and select a model to enable full LLM-powered enhancement. The `[llm]` extra includes both `mlx-lm` (text models) and `mlx-vlm` (vision-language models such as vision-capable Qwen), and the server picks the right backend automatically.
 </Note>
 
 ---
@@ -109,7 +109,7 @@ Enhance a prompt using a local LLM or template fallback. When an LLM is selected
 </ResponseField>
 
 <ResponseField name="method" type="string">
-  How the enhancement was produced: `"llm"` if a local LLM was used, or `"template"` if the fallback was used.
+  How the enhancement was produced: `"llm"` if a local LLM was used (either an `mlx-lm` text model or an `mlx-vlm` vision-language model run in text-only mode), or `"template"` if the fallback was used. The fallback also covers the case where the selected model cannot be loaded by either backend, so this endpoint never raises a raw import error.
 </ResponseField>
 
 ### Example

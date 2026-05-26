@@ -123,11 +123,20 @@ curl -X POST http://localhost:8420/api/settings \
 
 ## LLM prompt enhancement
 
-The server can use a local LLM model (via `mlx-lm`) to rewrite and improve your prompts before generation. This requires the `[llm]` extra:
+The server can use a local LLM model to rewrite and improve your prompts before generation. This requires the `[llm]` extra:
 
 ```bash
 pip install mlx-audiogen[llm]
 ```
+
+The `[llm]` extra installs two backends:
+
+- **`mlx-lm`** — text-only language models (for example, Mistral, Llama, and text-only Qwen variants).
+- **`mlx-vlm`** — vision-language models loaded for text-only completion (for example, vision-capable Qwen variants such as Qwen 2.5-VL).
+
+The server tries `mlx-lm` first. If the selected model is a vision-language architecture that `mlx-lm` cannot load, the server transparently falls back to `mlx-vlm` and generates a text completion without passing an image. You do not need to configure which backend to use — the selection is automatic per model.
+
+If neither backend can load the selected model, `/api/enhance` returns a `"method": "template"` response instead of failing, so the **Enhance** action in the web UI never breaks.
 
 LLM models are auto-discovered from your HuggingFace model cache. Once at least one compatible model is available, you can select it in the web UI or via the API.
 
