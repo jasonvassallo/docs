@@ -1,9 +1,9 @@
 ---
 title: "What is MLX AudioGen? On-device audio generation"
-description: "Generate music and audio on your Apple Silicon Mac with MusicGen, Stable Audio Open, and Demucs — no cloud, no API keys, no usage limits."
+description: "Generate music, sound effects, and stems on your Apple Silicon Mac with MusicGen, Stable Audio Open, MOSS-SoundEffect, and Demucs — fully local."
 ---
 
-MLX AudioGen is an on-device AI audio generation toolkit built for Apple Silicon. It brings together three state-of-the-art models — MusicGen, Stable Audio Open, and Demucs v4 — and runs all inference locally through Apple's Metal GPU using the MLX framework. Whether you're a musician sketching ideas, a developer building audio tools, or a producer working inside a DAW, you get fast, private, unlimited generation without touching a cloud API.
+MLX AudioGen is an on-device AI audio generation toolkit built for Apple Silicon. It brings together four state-of-the-art models — MusicGen, Stable Audio Open, MOSS-SoundEffect, and Demucs v4 — and runs all inference locally through Apple's Metal GPU using the MLX framework. Whether you're a musician sketching ideas, a developer building audio tools, or a producer working inside a DAW, you get fast, private, unlimited generation without touching a cloud API.
 
 ## What you can do
 
@@ -13,6 +13,9 @@ MLX AudioGen is an on-device AI audio generation toolkit built for Apple Silicon
   </Card>
   <Card title="Diffusion-based stereo audio" icon="waveform" href="/guides/stable-audio">
     Use Stable Audio Open for 44.1 kHz stereo output with negative prompts, adjustable diffusion steps, and audio-to-audio transformation.
+  </Card>
+  <Card title="Text-to-SFX" icon="volume-high" href="/guides/moss-sfx">
+    MOSS-SoundEffect generates 24 kHz mono sound effects — foley, ambience, one-shots — from short text prompts at roughly 1× realtime.
   </Card>
   <Card title="Stem separation" icon="sliders" href="/guides/stem-separation">
     Feed Demucs v4 any audio file and get back separate drums, bass, vocals, and other stems — all on-device.
@@ -39,6 +42,7 @@ Every other AI audio tool sends your prompts and audio to a remote server. MLX A
 | MusicGen Melody | base, large | Mono WAV | 32 kHz |
 | MusicGen Style | base | Mono WAV | 32 kHz |
 | Stable Audio Open | small, 1.0 | Stereo WAV | 44.1 kHz |
+| MOSS-SoundEffect | 4-bit MLX | Mono WAV | 24 kHz |
 | Demucs v4 | htdemucs, htdemucs_6s | 4–6 stems | 44.1 kHz |
 
 Pre-converted MLX weights for all variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and auto-download on first use.
@@ -53,7 +57,7 @@ MLX AudioGen requires an Apple Silicon Mac. The MLX framework uses Metal GPU acc
 |---|---|
 | Hardware | Apple Silicon (M1 or later) |
 | OS | macOS |
-| Python | 3.11 or later |
+| Python | 3.11 or later (3.13+ required for MOSS-SoundEffect) |
 | Disk | Varies by model — small models ~500 MB, large models ~4 GB |
 
 ## Where to go next

@@ -1,9 +1,9 @@
 ---
-title: "Supported models: MusicGen, Stable Audio, and Demucs"
-description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
+title: "Supported models: MusicGen, Stable Audio, MOSS, Demucs"
+description: "Compare every MLX AudioGen model — MusicGen, Stable Audio Open, MOSS-SoundEffect, and Demucs — with specs, HuggingFace repo IDs, and selection guidance."
 ---
 
-MLX AudioGen supports three model families: MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, and Demucs v4 for stem separation. Each family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for all variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use.
+MLX AudioGen supports four model families: MusicGen for autoregressive text-to-music, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-SFX, and Demucs v4 for stem separation. Each family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for all variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use.
 
 <Tip>
 If you're using MLX AudioGen for the first time, start with a small model. The `musicgen-small` and `stable-audio-open-small` variants download and run fastest, and they produce good results for most prompts. Switch to larger variants once you're comfortable with the generation workflow.
@@ -83,6 +83,37 @@ Stable Audio uses different generation parameters than MusicGen:
 | `--sampler` | `euler` | ODE sampler — `euler` or `rk4` |
 | `--negative-prompt` | `""` | Describe what you don't want in the output |
 
+## MOSS-SoundEffect
+
+MOSS-SoundEffect is a text-to-SFX model from OpenMOSS. It pairs a Qwen3-8B autoregressive backbone with a 16-codebook RVQ delay-pattern and the MOSS-Audio-Tokenizer codec to produce 24 kHz mono sound effects from a text prompt — for example, `"dog barking in a tunnel"` or `"rain on a metal roof"`. Generation runs at roughly 1× realtime on Apple Silicon.
+
+Use MOSS-SoundEffect when you need ambient sounds, foley, or one-shot SFX. Use MusicGen or Stable Audio Open for musical content instead.
+
+### Variant
+
+| Variant | Sample rate | Output | HuggingFace repo |
+|---|---|---|---|
+| 4-bit MLX | 24 kHz | Mono | `mlx-community/MOSS-SoundEffect-MLX-4bit` |
+
+The 8B backbone is distributed as a 4-bit MLX checkpoint (~4.4 GB). A separate audio tokenizer (`appautomaton/openmoss-audio-tokenizer-mlx`, ~256 MB) is downloaded alongside it on first use.
+
+<Note>
+MOSS-SoundEffect requires Python 3.13 because its runtime dependency `mlx-speech` does not support older Python versions. Confirm `python3 --version` reports 3.13 or later before installing.
+</Note>
+
+### MOSS-SoundEffect parameters
+
+MOSS-SoundEffect is exposed through the HTTP server and web UI; it is not available through the CLI. Generation accepts MusicGen-style sampling controls plus two MOSS-specific knobs:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `temperature` | 1.5 | Sampling temperature for the autoregressive backbone |
+| `top_k` | 50 | Number of top-k token candidates per step |
+| `top_p` | 0.6 | Nucleus sampling cutoff (MOSS-SoundEffect only) |
+| `repetition_penalty` | 1.2 | Penalty applied to repeated tokens (MOSS-SoundEffect only) |
+
+See the [MOSS-SoundEffect guide](/guides/moss-sfx) for prompt examples and the full request shape.
+
 ## Demucs v4
 
 Demucs v4 (HTDemucs) is Meta's hybrid source separation model. It takes a stereo audio file and splits it into separate stems. Unlike the generation models, Demucs does not take a text prompt — it analyzes the audio signal directly.
@@ -110,6 +141,9 @@ Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Ne
   </Accordion>
   <Accordion title="I want to match the timbre or texture of a reference track">
     Use **MusicGen Style**. Pass your reference audio with `--style-audio reference.wav`. MERT extracts timbral features from the reference and blends them with your text prompt using dual classifier-free guidance.
+  </Accordion>
+  <Accordion title="I want sound effects, foley, or ambient SFX from a text prompt">
+    Use **MOSS-SoundEffect**. It produces 24 kHz mono audio for prompts like `"dog barking in a tunnel"` or `"thunder rolling across a valley"`. It is optimized for non-musical content — for music, use MusicGen or Stable Audio Open instead.
   </Accordion>
   <Accordion title="I want to split a mixed track into individual stems">
     Use **HTDemucs** for 4-stem separation (drums, bass, vocals, other), or **htdemucs_6s** if you also need guitar and piano isolated separately.

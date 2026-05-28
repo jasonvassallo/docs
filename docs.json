@@ -33,6 +33,7 @@
             "pages": [
               "guides/musicgen",
               "guides/stable-audio",
+              "guides/moss-sfx",
               "guides/melody-conditioning",
               "guides/style-conditioning",
               "guides/stem-separation",
