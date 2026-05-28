@@ -1,0 +1,110 @@
+---
+title: "Generate text-to-SFX with MOSS-SoundEffect on Apple Silicon"
+description: "Use MOSS-SoundEffect to generate 24 kHz mono sound effects from a text prompt on your Mac — foley, ambience, and one-shots without leaving MLX AudioGen."
+---
+
+MOSS-SoundEffect is a text-to-SFX model from OpenMOSS that generates 24 kHz mono sound effects from a short text prompt. It uses a Qwen3-8B autoregressive backbone with a 16-codebook RVQ delay-pattern and the MOSS-Audio-Tokenizer codec, all running on Apple Silicon through MLX. Use it for foley, ambience, one-shots, and environmental audio — for musical content, use [MusicGen](/guides/musicgen) or [Stable Audio Open](/guides/stable-audio) instead.
+
+<Note>
+MOSS-SoundEffect requires **Python 3.13 or later** and the `[server]` extra. It is available through the HTTP server and web UI; it is not exposed by the `mlx-audiogen` CLI.
+</Note>
+
+## Prerequisites
+
+- Apple Silicon Mac (M1 or later)
+- Python 3.13 or later
+- `mlx-audiogen[server]` installed — see [Installation](/installation)
+- ~5 GB free disk space for the model and audio tokenizer
+
+## Basic usage
+
+Start the server and submit a generation job. The first request triggers an automatic download of the MOSS-SoundEffect backbone (~4.4 GB) and the audio tokenizer (~256 MB) from HuggingFace.
+
+<CodeGroup>
+
+```bash curl
+mlx-audiogen-server &
+
+curl -X POST http://localhost:8420/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "moss_sfx",
+    "prompt": "rain on a metal roof",
+    "seconds": 5
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "http://localhost:8420/api/generate",
+    json={
+        "model": "moss_sfx",
+        "prompt": "rain on a metal roof",
+        "seconds": 5,
+    },
+)
+job_id = response.json()["id"]
+```
+
+</CodeGroup>
+
+The server responds with a job ID. Poll `GET /api/status/{id}` until the job is `"done"`, then download the WAV from `GET /api/audio/{id}`. See [Submit generation jobs](/api/generation) for the full job lifecycle.
+
+You can also select **MOSS SFX** in the web UI's model selector at `http://localhost:8420`. The button shows "auto-downloads on first use (~5 GB)" until the weights are cached locally.
+
+## Parameters
+
+MOSS-SoundEffect accepts the standard generation fields plus two SFX-specific sampling controls.
+
+<ParamField body="prompt" type="string" required>
+  Text description of the sound effect to generate. Keep prompts concrete and physical — describe the source, the action, and the environment. Examples: `"dog barking in a tunnel"`, `"footsteps on gravel"`, `"thunder rolling across a valley"`.
+</ParamField>
+
+<ParamField body="seconds" type="float" default="5.0">
+  Duration of the generated audio in seconds. The upstream model caps generation at ~327 seconds (4096 tokens at 12.5 tokens/second), but quality is best for clips under 30 seconds.
+</ParamField>
+
+<ParamField body="temperature" type="float" default="1.5">
+  Sampling temperature for the autoregressive backbone. Higher values increase variety; lower values produce more deterministic output. MOSS-SoundEffect defaults to a higher temperature than MusicGen because the SFX domain benefits from more exploration.
+</ParamField>
+
+<ParamField body="top_k" type="integer" default="50">
+  Number of top-k token candidates considered at each sampling step.
+</ParamField>
+
+<ParamField body="top_p" type="float" default="0.6">
+  Nucleus sampling cutoff. Must be between `0` (exclusive) and `1`. Only used by `moss_sfx` — ignored by other models.
+</ParamField>
+
+<ParamField body="repetition_penalty" type="float" default="1.2">
+  Penalty applied to repeated tokens to reduce loops and stutters in long clips. Must be between `1.0` and `2.0`. Only used by `moss_sfx` — ignored by other models.
+</ParamField>
+
+<ParamField body="seed" type="integer">
+  Random seed for reproducible output. Omit for a different result each run.
+</ParamField>
+
+## Prompt tips
+
+<AccordionGroup>
+  <Accordion title="Describe the source, action, and environment">
+    MOSS-SoundEffect responds best to concrete physical prompts. `"glass shattering on a tile floor"` outperforms `"breaking glass sound"`. Naming the surface, material, or space helps the model pick the right acoustic character.
+  </Accordion>
+  <Accordion title="Keep clips short for one-shots">
+    For foley and one-shots, 2–4 seconds is usually plenty. Longer requests increase the chance of artifacts or unrelated drift in the tail.
+  </Accordion>
+  <Accordion title="Adjust repetition_penalty for textures vs. one-shots">
+    For continuous textures like rain or wind, the default `1.2` is fine. For percussive one-shots that should not loop, try `1.3–1.5` to reduce repeated transients.
+  </Accordion>
+  <Accordion title="Lower top_p for tighter, more predictable output">
+    The default `0.6` already concentrates sampling. Drop to `0.4–0.5` if generations wander off-prompt, or raise toward `0.8` for more variety on creative prompts.
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+- **No CLI support yet** — use the HTTP server or web UI.
+- **No LoRA support yet** — the server skips adapter application for `moss_sfx`.
+- **No per-step progress callback** — job status reports start and completion, but intermediate progress is not yet wired through the upstream library.

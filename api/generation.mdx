@@ -14,10 +14,11 @@ Submit a generation request. The server enqueues the job and returns immediately
 ### Request body
 
 <ParamField body="model" type="string" required>
-  Model to use for generation. Must match `^(musicgen|stable_audio)$`.
+  Model to use for generation. Must match `^(musicgen|stable_audio|moss_sfx)$`.
 
   - `"musicgen"` — autoregressive, 32 kHz, mono or stereo
   - `"stable_audio"` — diffusion-based, 44.1 kHz stereo
+  - `"moss_sfx"` — text-to-SFX, 24 kHz mono (see the [MOSS-SoundEffect guide](/guides/moss-sfx))
 </ParamField>
 
 <ParamField body="prompt" type="string" required>
@@ -113,6 +114,26 @@ Submit a generation request. The server enqueues the job and returns immediately
 
   Default: `"euler"`
 </ParamField>
+
+#### MOSS-SoundEffect parameters
+
+MOSS-SoundEffect also uses `temperature`, `top_k`, and `seed` from the MusicGen section above (its defaults differ — `temperature: 1.5`, `top_k: 50` — but the field shape is the same).
+
+<ParamField body="top_p" type="float">
+  Nucleus sampling cutoff. Must be between `0` (exclusive) and `1`. Only used by `moss_sfx`; ignored by other models.
+
+  Default: `0.6`
+</ParamField>
+
+<ParamField body="repetition_penalty" type="float">
+  Penalty applied to repeated tokens to reduce loops in longer clips. Must be between `1.0` and `2.0`. Only used by `moss_sfx`; ignored by other models.
+
+  Default: `1.2`
+</ParamField>
+
+<Note>
+On the first `moss_sfx` request, the server auto-downloads the MOSS-SoundEffect 4-bit MLX weights (~4.4 GB) and the MOSS-Audio-Tokenizer codec (~256 MB) into the HuggingFace cache. The first job therefore takes longer to start; subsequent jobs load from cache.
+</Note>
 
 <ParamField body="reference_audio_path" type="string | null">
   Absolute path to a reference audio file for audio-to-audio generation (Stable Audio only). The model conditions on the reference to produce variations. Maximum 1024 characters. Must not contain `..`.
@@ -238,7 +259,7 @@ Poll the status of a generation job. Call this repeatedly until `status` is `"do
 </ResponseField>
 
 <ResponseField name="sample_rate" type="integer | null">
-  Sample rate of the generated audio. `null` until the job completes. MusicGen: 32000. Stable Audio: 44100.
+  Sample rate of the generated audio. `null` until the job completes. MusicGen: 32000. Stable Audio: 44100. MOSS-SoundEffect: 24000.
 </ResponseField>
 
 <ResponseField name="has_midi" type="boolean">
