@@ -1,0 +1,137 @@
+---
+title: "Build multi-track arrangements in the Arrange tab"
+description: "Assemble generations, imported audio, and split stems into a DAW-style timeline — trim, fade, crossfade, and export a stereo mix, all in your browser."
+---
+
+The **Arrange** tab is a DAW-style multi-track timeline built into the MLX AudioGen web UI. You lay your generations, imported audio files, and separated stems out across lanes, trim and fade them on a shared timeline, mix levels and panning, and export the whole thing to a single stereo WAV. Everything runs client-side in the browser — there is no extra server setup, and the arrangement state lives in your browser, not on the server.
+
+Arrange is the sixth tab in the sidebar (keyboard shortcut `6`), alongside Generate, Suggest, Train, Library, and Settings.
+
+<Warning>
+Generations and separated stems are kept by the server for only about **5 minutes** before the files are cleaned up. The Arrange tab captures the audio into your browser when a clip is created, and **saving the arrangement preserves that audio locally** so it survives the server's cleanup. After a stem split, an amber banner reminds you to save. Arrangements are stored per-browser and are not synced to the server — see [Saving arrangements](#saving-arrangements).
+</Warning>
+
+## Open the Arrange tab
+
+<Steps>
+  <Step title="Launch the web UI">
+    Start the server with the web UI if it isn't already running:
+
+    ```bash
+    pip install "mlx-audiogen[server]"
+    mlx-audiogen-app
+    ```
+
+    This opens `http://localhost:8420` and auto-discovers any converted models.
+  </Step>
+
+  <Step title="Switch to Arrange">
+    Click the **Arrange** tab in the sidebar, or press `6`. You start with an empty timeline and one lane.
+  </Step>
+
+  <Step title="Add a lane">
+    Click **+ Track** to add lanes. Each lane is a horizontal track that holds audio clips placed along the timeline.
+  </Step>
+</Steps>
+
+## Add audio to a lane
+
+There are four ways to get audio onto the timeline.
+
+<Tabs>
+  <Tab title="Drag from history">
+    Drag any generation from the **History** list directly onto a lane. The clip drops where you release it, so you can place it anywhere along the timeline.
+  </Tab>
+
+  <Tab title="Arm and generate">
+    Click the arm toggle (**◉**) on a lane to arm it, then run a generation as usual. The result lands at the playhead position on the armed lane — useful for building an arrangement section by section without leaving the Arrange tab.
+  </Tab>
+
+  <Tab title="Split a clip into stems">
+    Right-click a clip that came from a generation and choose to split it into stems. Demucs separates it into **Drums**, **Bass**, **Other**, and **Vocals**, and each stem is placed on its own new lane, time-aligned with the original.
+
+    <Note>
+      Stem splitting requires the Demucs model on the server. If no local weights are found, they download automatically from HuggingFace on the first split. See the [stem separation guide](/guides/stem-separation) for details.
+    </Note>
+  </Tab>
+
+  <Tab title="Import audio">
+    Click **Import Audio**, or drag an audio file straight from Finder onto a lane. Supported formats are WAV, MP3, FLAC, AIFF, and M4A.
+  </Tab>
+</Tabs>
+
+Each clip shows a **spectrogram thumbnail** so you can recognize its content at a glance. A clip whose underlying audio is no longer available — for example, a generation that the server cleaned up before you saved the arrangement — shows a grayscale **"source missing"** overlay.
+
+## Edit clips
+
+Clips are arranged and trimmed directly on the timeline.
+
+| Action | How |
+|--------|-----|
+| Move a clip | Drag it left or right along its lane |
+| Trim a clip | Drag either edge inward or outward |
+| Split at the playhead | Select a clip and press `s`, or click **Split** |
+| Duplicate a clip | Select it and press `⌘D` |
+| Delete a clip | Select it and press `⌫` |
+
+When a clip is selected, **Fade In** and **Fade Out** inputs appear. The fades are drawn as triangles on the clip so you can see their length at a glance.
+
+<Tip>
+Drag two clips so they overlap on the **same lane** and MLX AudioGen automatically **crossfades** them using an equal-power curve. This is the quickest way to blend two generations or loop a section seamlessly.
+</Tip>
+
+### Snap to the grid
+
+The **Snap** control has three modes: **Off**, **Bar**, and **Beat**. The grid follows the **Master BPM** from the transport bar, and gridlines mark the bars on the timeline. Snapping to Bar or Beat keeps clips locked to musical boundaries as you move and trim them.
+
+## Play and navigate
+
+<AccordionGroup>
+  <Accordion title="Transport">
+    Use **Play** / **Stop** to audition the arrangement. Click an empty spot on a lane to move the playhead and seek to that position; a vertical playhead line tracks playback across all lanes.
+  </Accordion>
+
+  <Accordion title="Loop">
+    Toggle **Loop** to cycle the entire arrangement continuously. (Looping a sub-region is not yet supported — the loop always covers the whole arrangement.)
+  </Accordion>
+
+  <Accordion title="Zoom">
+    Use the zoom slider, or the **−** / **+** buttons, to zoom the timeline in and out for fine editing or a wide overview.
+  </Accordion>
+</AccordionGroup>
+
+## Mix the arrangement
+
+Each lane has its own mixer controls:
+
+- **Volume** — sets the lane's playback level.
+- **Pan** — places the lane in the stereo field.
+- **Mute (M)** — silences the lane.
+- **Solo (S)** — plays only the soloed lane(s), muting the rest.
+- **Arm (◉)** — routes new generations to this lane (see [Arm and generate](#add-audio-to-a-lane)).
+
+A **master fader** sets the overall output level. All of these — per-lane volume and pan, mutes and solos, fades, crossfades, and the master fader — are applied both during playback and when you export.
+
+## Saving arrangements
+
+Arrangements **autosave to your browser** (IndexedDB) about half a second after every edit. The toolbar shows an editable arrangement **name** plus **Save**, **Load**, and **New** controls. A **●** dot next to the name means you have unsaved changes.
+
+<Warning>
+Because the server keeps generations and stems for only ~5 minutes, **save the arrangement to lock the audio into your browser** before that window closes. Saving captures the actual audio data locally, so cleared server files no longer matter for clips you have already placed. Arrangements live in the browser that created them and are **not** synced to the server or shared between browsers and devices.
+</Warning>
+
+## Export a mix
+
+Click **Export Mix** to render the entire arrangement — every lane's volume and pan, all fades and crossfades, and the master fader — down to a single file. The export is a **16-bit, 44.1 kHz, stereo WAV** download.
+
+## Tips and current limits
+
+<Tip>
+Arm a lane and generate section by section, then drag clips to overlap and crossfade them into a continuous track. Splitting a generation into stems lets you rebalance drums, bass, vocals, and other independently before exporting.
+</Tip>
+
+A few things to keep in mind in this release:
+
+- **No undo yet.** Edits apply immediately; rebuild a clip if you need to back one out. (Undo is planned.)
+- **Audio clips only.** The timeline arranges audio, not MIDI.
+- **Whole-arrangement loop.** The Loop toggle cycles the full arrangement; sub-region looping is not yet available.
