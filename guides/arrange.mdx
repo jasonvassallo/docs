@@ -48,7 +48,7 @@ There are four ways to get audio onto the timeline.
   </Tab>
 
   <Tab title="Split a clip into stems">
-    Right-click a clip that came from a generation and choose to split it into stems. Demucs separates it into **Drums**, **Bass**, **Other**, and **Vocals**, and each stem is placed on its own new lane, time-aligned with the original.
+    Right-click a clip that came from a generation and choose **Separate into Stems** from the [context menu](#clip-context-menu). Demucs separates it into **Drums**, **Bass**, **Other**, and **Vocals**, and each stem is placed on its own new lane, time-aligned with the original.
 
     <Note>
       Stem splitting requires the Demucs model on the server. If no local weights are found, they download automatically from HuggingFace on the first split. See the [stem separation guide](/guides/stem-separation) for details.
@@ -68,13 +68,26 @@ Clips are arranged and trimmed directly on the timeline.
 
 | Action | How |
 |--------|-----|
-| Move a clip | Drag it left or right along its lane |
+| Move a clip | Drag it left or right along its lane, or **up or down to move it onto another lane** — the horizontal position is kept (and snapped) as usual |
 | Trim a clip | Drag either edge inward or outward |
 | Split at the playhead | Select a clip and press `s`, or click **Split** |
 | Duplicate a clip | Select it and press `⌘D` |
 | Delete a clip | Select it and press `⌫` |
 
 When a clip is selected, **Fade In** and **Fade Out** inputs appear. The fades are drawn as triangles on the clip so you can see their length at a glance.
+
+### Clip context menu
+
+**Right-click a clip** to open a context menu with quick actions:
+
+- **Split at Playhead** — splits the clip in two at the playhead (shown only when the playhead is inside the clip).
+- **Duplicate** (`⌘D`) — drops a copy alongside the original.
+- **Delete** (`⌫`) — removes the clip.
+- **Separate into Stems** — runs Demucs stem separation on the clip (shown only for clips that came from a generation). See [Split a clip into stems](#add-audio-to-a-lane).
+
+<Note>
+Stem separation now lives in this context menu as **Separate into Stems**, so a right-click no longer splits a clip into stems on its own — this prevents accidental separations while you work.
+</Note>
 
 <Tip>
 Drag two clips so they overlap on the **same lane** and MLX AudioGen automatically **crossfades** them using an equal-power curve. This is the quickest way to blend two generations or loop a section seamlessly.
@@ -83,6 +96,12 @@ Drag two clips so they overlap on the **same lane** and MLX AudioGen automatical
 ### Snap to the grid
 
 The **Snap** control has three modes: **Off**, **Bar**, and **Beat**. The grid follows the **Master BPM** from the transport bar, and gridlines mark the bars on the timeline. Snapping to Bar or Beat keeps clips locked to musical boundaries as you move and trim them.
+
+When Snap is set to **Beat**, a **Swing** slider (50–75%) appears next to it. Swing shifts the off-beat snap positions later in time for a swung, less mechanical feel — **50%** is straight (no swing), and higher values push the off-beats progressively later.
+
+<Note>
+Swing affects **where clips snap**, not the audio inside a clip. It nudges placement on the grid; it does not time-stretch or re-groove the audio itself.
+</Note>
 
 ## Play and navigate
 
@@ -110,7 +129,9 @@ Each lane has its own mixer controls:
 - **Solo (S)** — plays only the soloed lane(s), muting the rest.
 - **Arm (◉)** — routes new generations to this lane (see [Arm and generate](#add-audio-to-a-lane)).
 
-A **master fader** sets the overall output level. All of these — per-lane volume and pan, mutes and solos, fades, crossfades, and the master fader — are applied both during playback and when you export.
+To remove a lane, click the **×** button on its header. If the lane still holds clips, you are asked to confirm first. The **last remaining lane can't be removed** — an arrangement always keeps at least one lane.
+
+A **master fader** sets the overall output level, with a live **output meter** beside it that shows the master level during playback — green at safe levels, amber as you approach the ceiling, and red when the output is clipping. All of these — per-lane volume and pan, mutes and solos, fades, crossfades, and the master fader — are applied both during playback and when you export.
 
 ## Saving arrangements
 
@@ -122,7 +143,9 @@ Because the server keeps generations and stems for only ~5 minutes, **save the a
 
 ## Export a mix
 
-Click **Export Mix** to render the entire arrangement — every lane's volume and pan, all fades and crossfades, and the master fader — down to a single file. The export is a **16-bit, 44.1 kHz, stereo WAV** download.
+Click **Export Mix** to render the entire arrangement — every lane's volume and pan, all fades and crossfades, and the master fader — down to a single file. The export is a **44.1 kHz, stereo WAV** download.
+
+A **bit-depth** selector next to **Export Mix** lets you choose between **16-bit** (the default) and **24-bit**. Pick 24-bit when you want extra headroom and dynamic range for further editing or mastering; 16-bit is fine for general listening and smaller files.
 
 ## Tips and current limits
 
