@@ -133,6 +133,37 @@ To remove a lane, click the **×** button on its header. If the lane still holds
 
 A **master fader** sets the overall output level, with a live **output meter** beside it that shows the master level during playback — green at safe levels, amber as you approach the ceiling, and red when the output is clipping. All of these — per-lane volume and pan, mutes and solos, fades, crossfades, and the master fader — are applied both during playback and when you export.
 
+## Track effects (FX)
+
+Each track has its own **insert-effects chain** of four effects, applied in a fixed signal order: **EQ3 → Compressor → Delay → Reverb**.
+
+Click the **FX** button in a track's mixer header — next to **M**, **S**, and **◉** — to open the effects rack for that track. When any effect on the track is enabled, an **active-FX dot** appears on the button so you can see at a glance which tracks are processed.
+
+Every effect has its own **enable toggle** and a set of parameter sliders:
+
+| Effect | Parameters |
+|--------|-----------|
+| **EQ3** | Low / Mid / High gain, and Mid frequency |
+| **Compressor** | Threshold, ratio, attack, release, knee |
+| **Delay** | Time, feedback, mix |
+| **Reverb** | Decay, mix |
+
+Parameter changes apply **live during playback**, so you can dial effects in while the arrangement is playing.
+
+The effects render **identically in live playback and in the exported WAV mix** — the FX chain is part of the offline render, so what you hear is what you export.
+
+<Note>
+There is **one instance of each effect type per track** — the four effects can't be reordered or duplicated. FX settings are saved with the arrangement in your browser (IndexedDB) and survive a reload, just like the rest of the arrangement.
+</Note>
+
+<Tip>
+Adjusting reverb **decay** briefly re-anchors playback while it regenerates the reverb's impulse response — a momentary catch is expected when you move that slider during playback.
+</Tip>
+
+<Warning>
+Track effects are a **web-UI feature only**. They are not available in the native plugin or the Max for Live integration.
+</Warning>
+
 ## Saving arrangements
 
 Arrangements **autosave to your browser** (IndexedDB) about half a second after every edit. The toolbar shows an editable arrangement **name** plus **Save**, **Load**, and **New** controls. A **●** dot next to the name means you have unsaved changes.
