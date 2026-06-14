@@ -119,6 +119,34 @@ Swing affects **where clips snap**, not the audio inside a clip. It nudges place
   </Accordion>
 </AccordionGroup>
 
+## Undo and redo
+
+Most edits in the Arrange tab can be undone and redone. Use the **Undo** and **Redo** buttons in the transport toolbar — just after **Stop** — or the keyboard shortcuts:
+
+| Action | macOS | Windows |
+|--------|-------|---------|
+| Undo | `⌘Z` | `Ctrl+Z` |
+| Redo | `⌘⇧Z` or `⌘Y` | `Ctrl+Shift+Z` or `Ctrl+Y` |
+
+Undo and redo cover changes to the **arrangement document**, including:
+
+- adding, removing, moving, trimming, splitting, and duplicating clips
+- clip fades
+- per-track volume, pan, mute, and solo
+- per-track effects (FX) changes
+- master volume, snap, and swing
+- renaming the arrangement
+
+<Note>
+Undo affects only the arrangement itself, **not transport or playback state** — the playhead position, zoom level, and current selection are left as they are. If you undo or redo while the arrangement is playing, playback **re-anchors** so you hear the change immediately.
+</Note>
+
+<Warning>
+Undo history is **session-scoped**: it is cleared when you load a different arrangement or start a new one, and it is **not** persisted across page reloads. Reload the page and the undo stack resets — your saved arrangement is unaffected, but you can no longer step back through earlier edits.
+</Warning>
+
+Undo and redo are a **web-UI feature only** — they are not available in the native plugin or the Max for Live integration.
+
 ## Mix the arrangement
 
 Each lane has its own mixer controls:
@@ -186,6 +214,6 @@ Arm a lane and generate section by section, then drag clips to overlap and cross
 
 A few things to keep in mind in this release:
 
-- **No undo yet.** Edits apply immediately; rebuild a clip if you need to back one out. (Undo is planned.)
+- **Undo is session-scoped.** The undo history resets when you load another arrangement, start a new one, or reload the page (see [Undo and redo](#undo-and-redo)).
 - **Audio clips only.** The timeline arranges audio, not MIDI.
 - **Whole-arrangement loop.** The Loop toggle cycles the full arrangement; sub-region looping is not yet available.
