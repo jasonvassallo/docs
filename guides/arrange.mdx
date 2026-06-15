@@ -76,6 +76,16 @@ Clips are arranged and trimmed directly on the timeline.
 
 When a clip is selected, **Fade In** and **Fade Out** inputs appear. The fades are drawn as triangles on the clip so you can see their length at a glance.
 
+### Select multiple clips
+
+Hold **Shift** or **⌘/Ctrl** and click clips to build a multi-clip selection. Every selected clip is highlighted, and the selection-wide actions operate on all of them at once:
+
+- **Move** — drag any selected clip and the whole selection moves together.
+- **Delete** (`⌫`) — removes every selected clip.
+- **Duplicate** (`⌘D`) — drops a copy of each selected clip alongside the originals.
+
+Click a single clip without a modifier to collapse back to a one-clip selection, or click an empty spot on a lane to clear the selection.
+
 ### Clip context menu
 
 **Right-click a clip** to open a context menu with quick actions:
@@ -111,7 +121,7 @@ Swing affects **where clips snap**, not the audio inside a clip. It nudges place
   </Accordion>
 
   <Accordion title="Loop">
-    Toggle **Loop** to cycle the entire arrangement continuously. (Looping a sub-region is not yet supported — the loop always covers the whole arrangement.)
+    Toggle **Loop** to cycle a region continuously. **Drag along the ruler strip** above the lanes to set a loop region; it snaps to the grid as you drag. With **Loop** on, playback cycles that region instead of the whole arrangement. If you haven't set a region, Loop falls back to cycling the entire arrangement.
   </Accordion>
 
   <Accordion title="Zoom">
@@ -202,9 +212,14 @@ Because the server keeps generations and stems for only ~5 minutes, **save the a
 
 ## Export a mix
 
-Click **Export Mix** to render the entire arrangement — every lane's volume and pan, all fades and crossfades, and the master fader — down to a single file. The export is a **44.1 kHz, stereo WAV** download.
+Click **Export Mix** to render the entire arrangement — every lane's volume and pan, all fades and crossfades, and the master fader — down to a single file. The export is a **44.1 kHz, stereo** download.
 
-A **bit-depth** selector next to **Export Mix** lets you choose between **16-bit** (the default) and **24-bit**. Pick 24-bit when you want extra headroom and dynamic range for further editing or mastering; 16-bit is fine for general listening and smaller files.
+Two selectors next to **Export Mix** control the output file:
+
+- **Format** — choose **WAV** or **AIFF**. Both are uncompressed and lossless; pick whichever your DAW prefers.
+- **Bit depth** — choose **16-bit** (the default) or **24-bit**. Pick 24-bit when you want extra headroom and dynamic range for further editing or mastering; 16-bit is fine for general listening and smaller files.
+
+A **progress bar** appears while the mix renders, so you can track longer arrangements as they bounce down. The file downloads automatically when the render finishes.
 
 ## Tips and current limits
 
@@ -216,4 +231,3 @@ A few things to keep in mind in this release:
 
 - **Undo is session-scoped.** The undo history resets when you load another arrangement, start a new one, or reload the page (see [Undo and redo](#undo-and-redo)).
 - **Audio clips only.** The timeline arranges audio, not MIDI.
-- **Whole-arrangement loop.** The Loop toggle cycles the full arrangement; sub-region looping is not yet available.
