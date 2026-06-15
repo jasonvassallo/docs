@@ -93,6 +93,7 @@ Click a single clip without a modifier to collapse back to a one-clip selection,
 - **Split at Playhead** — splits the clip in two at the playhead (shown only when the playhead is inside the clip).
 - **Duplicate** (`⌘D`) — drops a copy alongside the original.
 - **Delete** (`⌫`) — removes the clip.
+- **Stretch / Warp…** — opens the time-stretch inspector to fit the clip to a length or tempo. See [Time-stretch and warp](#time-stretch-and-warp).
 - **Separate into Stems** — runs Demucs stem separation on the clip (shown only for clips that came from a generation). See [Split a clip into stems](#add-audio-to-a-lane).
 
 <Note>
@@ -113,6 +114,23 @@ When Snap is set to **Beat**, a **Swing** slider (50–75%) appears next to it. 
 Swing affects **where clips snap**, not the audio inside a clip. It nudges placement on the grid; it does not time-stretch or re-groove the audio itself.
 </Note>
 
+### Time-stretch and warp
+
+To change a clip's length without changing its pitch, **right-click the clip** and choose **Stretch / Warp…** from the [context menu](#clip-context-menu). An inspector opens with two modes:
+
+- **Manual** — drag the **stretch factor** slider from **0.25×** to **4×**. Values below `1×` shorten the clip (speed it up); values above `1×` lengthen it (slow it down).
+- **Warp** — enter the clip's **BPM** and MLX AudioGen automatically fits it to the project's **Master BPM**. This is the quickest way to lock a loop or generation to the arrangement's tempo.
+
+Stretching is **pitch-preserving** (WSOLA), so a clip keeps its original pitch as you change its length. The stretch is applied both **during playback** and in the **exported mix**, so what you hear is what you bounce down.
+
+<Warning>
+Extreme stretch ratios show a warning in the inspector. The further you push beyond the natural range, the more audible the time-stretching artifacts become — keep ratios moderate for the cleanest results.
+</Warning>
+
+<Note>
+Time-stretch and warp are a **web-UI feature only**. They are not available in the native plugin or the Max for Live integration.
+</Note>
+
 ## Play and navigate
 
 <AccordionGroup>
@@ -126,6 +144,10 @@ Swing affects **where clips snap**, not the audio inside a clip. It nudges place
 
   <Accordion title="Zoom">
     Use the zoom slider, or the **−** / **+** buttons, to zoom the timeline in and out for fine editing or a wide overview.
+  </Accordion>
+
+  <Accordion title="Live editing during playback">
+    You can keep editing while the arrangement plays. Adding, moving, trimming, splitting, removing, and re-fading clips all take effect **immediately**, without stopping playback — clips you didn't touch keep playing without interruption, and the changed audio is picked up in place.
   </Accordion>
 </AccordionGroup>
 
