@@ -249,9 +249,21 @@ Poll the status of a generation job. Call this repeatedly until `status` is `"do
   Whether the job has been starred as a favorite.
 </ResponseField>
 
+<ResponseField name="quality_overall" type="float | null">
+  Automated quality score from `0.0` (poor) to `1.0` (clean), computed after the job completes. Only present for generations that used a LoRA adapter; `null` otherwise.
+</ResponseField>
+
+<ResponseField name="quality_flags" type="string[] | null">
+  Human-readable quality issues detected in the output (for example `"noisy"`, `"clipping"`, `"no-dynamics"`, `"spectral-imbalance"`). Empty array when no issues are found. Only present for LoRA-active generations; `null` otherwise.
+</ResponseField>
+
 <ResponseField name="error" type="string | null">
   Error message if `status` is `"error"`. `null` otherwise.
 </ResponseField>
+
+<Note>
+  **Automated quality metrics.** When a generation uses a LoRA adapter, MLX AudioGen runs a lightweight, pure-numpy health analysis on the output and reports it as `quality_overall` (0–1) plus `quality_flags`. The same metrics underpin the flywheel's self-correction capability: when a retrained adapter version scores worse than the version before it, the flywheel keeps the older, better version active instead of promoting a regression.
+</Note>
 
 ### Example
 
@@ -298,6 +310,8 @@ result = wait_for_job("a3f1c2d4")
   "sample_rate": 32000,
   "has_midi": true,
   "starred": false,
+  "quality_overall": 0.86,
+  "quality_flags": [],
   "error": null
 }
 ```
