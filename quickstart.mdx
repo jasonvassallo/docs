@@ -3,7 +3,7 @@ title: "Generate AI audio on Apple Silicon with MLX AudioGen"
 description: "Install MLX AudioGen, generate your first audio clip from a text prompt, and launch the web UI — running entirely on your Apple Silicon Mac."
 ---
 
-MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no usage limits, and no audio data leaving your machine. Follow the steps below to go from a fresh install to audio playing in your browser.
+MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no usage limits, and no audio data leaving your machine. (The one exception is the opt-in [Lyria](/models#lyria-cloud-google-vertex-ai) cloud model, which is off by default — see below.) Follow the steps below to go from a fresh install to audio playing in your browser.
 
 <Note>
   MLX AudioGen requires an Apple Silicon Mac (M1 or later). MLX uses the Metal GPU and does not support Intel Macs, Linux, or Windows.
@@ -83,6 +83,10 @@ MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no
 
     <Note>
       A third generation model — **MOSS-SoundEffect** for text-to-sound-effect generation (24 kHz mono) — is available in the [web UI](/integrations/web-ui) and over the [HTTP API](/api/generation) (`model: "moss_sfx"`), but not from the `mlx-audiogen` command-line tool.
+    </Note>
+
+    <Note>
+      There is also an opt-in **cloud** model — **Lyria** (Google Vertex AI). Unlike everything else here, it does not run on your Mac: your prompt is sent to Google Cloud and the audio is SynthID-watermarked. It is off by default; enable it with the `[cloud]` extra plus a `GOOGLE_CLOUD_PROJECT` and Application Default Credentials (no API key). See [Lyria](/models#lyria-cloud-google-vertex-ai).
     </Note>
   </Step>
 

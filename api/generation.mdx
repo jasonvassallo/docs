@@ -14,13 +14,19 @@ Submit a generation request. The server enqueues the job and returns immediately
 ### Request body
 
 <ParamField body="model" type="string" required>
-  Model to use for generation. Must match `^(musicgen|stable_audio|moss_sfx)$`.
+  Model to use for generation. Must match `^(musicgen|stable_audio|moss_sfx|lyria-002|lyria-3-pro-preview|lyria-3-clip-preview)$`.
 
-  - `"musicgen"` — autoregressive music, 32 kHz, mono or stereo
-  - `"stable_audio"` — diffusion-based music, 44.1 kHz stereo
-  - `"moss_sfx"` — MOSS-SoundEffect text-to-sound-effect, 24 kHz mono
+  - `"musicgen"` — autoregressive music, 32 kHz, mono or stereo (local)
+  - `"stable_audio"` — diffusion-based music, 44.1 kHz stereo (local)
+  - `"moss_sfx"` — MOSS-SoundEffect text-to-sound-effect, 24 kHz mono (local)
+  - `"lyria-002"` — **cloud** (Google Vertex AI), Lyria 2, ~30 s 48 kHz stereo
+  - `"lyria-3-pro-preview"` / `"lyria-3-clip-preview"` — **cloud** (Google Vertex AI), Lyria 3 **preview**
 
   Default: `"musicgen"`
+
+  <Warning>
+    The `lyria-*` values run on **Google Vertex AI, not on your machine** — selecting one sends your prompt to Google Cloud (egress) and returns SynthID-watermarked audio. They are only accepted when the server has `GOOGLE_CLOUD_PROJECT` set and the `[cloud]` extra installed (authentication is via Application Default Credentials — no API key). If Lyria is not configured, the job fails with an error explaining how to enable it. The `lyria-3-*` ids are preview/experimental. See [Cloud generation with Lyria](#cloud-generation-with-lyria).
+  </Warning>
 </ParamField>
 
 <ParamField body="prompt" type="string" required>
@@ -28,7 +34,7 @@ Submit a generation request. The server enqueues the job and returns immediately
 </ParamField>
 
 <ParamField body="negative_prompt" type="string">
-  Describes characteristics to avoid in the output. Maximum 5000 characters. Only used by `stable_audio`; ignored by `musicgen`.
+  Describes characteristics to avoid in the output. Maximum 5000 characters. Used by `stable_audio` and by Lyria 2 (`lyria-002`); ignored by `musicgen` and by the Lyria 3 preview models (`lyria-3-*`).
 
   Default: `""`
 </ParamField>
@@ -44,7 +50,7 @@ Submit a generation request. The server enqueues the job and returns immediately
 </ParamField>
 
 <ParamField body="seed" type="integer | null">
-  Random seed for reproducibility. Pass an integer to get deterministic output. `null` uses a random seed each time.
+  Random seed for reproducibility. Pass an integer to get deterministic output. `null` uses a random seed each time. For Lyria, `seed` applies to Lyria 2 (`lyria-002`) only and is ignored by the Lyria 3 preview models.
 
   Default: `null`
 </ParamField>
@@ -232,6 +238,48 @@ curl -X POST http://localhost:8420/api/generate \
 
 ---
 
+## Cloud generation with Lyria
+
+Lyria is the only **cloud** model MLX AudioGen exposes. It runs on **Google Vertex AI**, not on your Mac, and is **opt-in** — the `lyria-*` model values are only accepted when the server is configured for it. Use it exactly like a local model: submit to `POST /api/generate`, poll `GET /api/status/{id}`, then download from `GET /api/audio/{id}`. Generation is a single blocking cloud round-trip (batch), so it runs in the same job queue as local generations with no streaming.
+
+<Warning>
+**Cloud egress + watermarking.** Selecting a `lyria-*` model sends your prompt to Google Cloud and returns SynthID-watermarked audio. This is unlike every other MLX AudioGen model, which runs entirely on-device. Enable Lyria only if you are comfortable with prompt egress to Google.
+</Warning>
+
+### Enabling Lyria on the server
+
+The server only offers Lyria when **both** of these are true:
+
+- The optional `[cloud]` extra is installed: `pip install "mlx-audiogen[cloud]"` (adds `google-genai` + `google-auth`).
+- The `GOOGLE_CLOUD_PROJECT` environment variable is set to your Google Cloud project id. Optionally set `GOOGLE_CLOUD_LOCATION` (defaults to `us-central1`; only affects `lyria-002`).
+
+Authentication is **Application Default Credentials (ADC)** — there is **no API key**. The server uses whatever ADC / Workload Identity Federation login is configured on the host (for local use, run `gcloud auth application-default login`). When `GOOGLE_CLOUD_PROJECT` is unset, the Lyria models do not appear in [`GET /api/models`](/api/models) and a `lyria-*` generation request fails with an error explaining how to enable it.
+
+### Model ids and supported fields
+
+| Model id | Lyria version | Status | `negative_prompt` | `seed` | Output |
+|---|---|---|---|---|---|
+| `lyria-002` | Lyria 2 | Stable (verified) | Yes | Yes | ~30 s, 48 kHz stereo |
+| `lyria-3-pro-preview` | Lyria 3 Pro | **Preview** | No | No | text input only |
+| `lyria-3-clip-preview` | Lyria 3 Clip | **Preview** | No | No | text input only |
+
+Lyria returns fixed-length clips (~30 s for Lyria 2), so `seconds` does not control the cloud generation length — it is used only to trim the returned audio. MusicGen/Stable Audio parameters (`temperature`, `steps`, `cfg_scale`, and so on) are ignored by Lyria.
+
+### Example
+
+```bash curl
+curl -X POST http://localhost:8420/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "lyria-002",
+    "prompt": "warm analog synthwave with a driving bassline",
+    "negative_prompt": "vocals, distortion",
+    "seed": 42
+  }'
+```
+
+---
+
 ## GET /api/status/{id}
 
 Poll the status of a generation job. Call this repeatedly until `status` is `"done"` or `"error"`.
@@ -277,7 +325,7 @@ Poll the status of a generation job. Call this repeatedly until `status` is `"do
 </ResponseField>
 
 <ResponseField name="sample_rate" type="integer | null">
-  Sample rate of the generated audio. `null` until the job completes. MusicGen: 32000. Stable Audio: 44100. MOSS-SoundEffect: 24000.
+  Sample rate of the generated audio. `null` until the job completes. MusicGen: 32000. Stable Audio: 44100. MOSS-SoundEffect: 24000. Lyria: 48000 (read from the returned WAV).
 </ResponseField>
 
 <ResponseField name="has_midi" type="boolean">

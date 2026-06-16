@@ -96,12 +96,42 @@ The base install includes the CLI and all audio generation functionality. Extras
 | `[server]` | HTTP server, React web UI, async job queue | Web UI, DAW plugin, or API access |
 | `[llm]` | AI prompt enhancement via a local LLM | Prompt suggestions in the web UI |
 | `[convert]` | Convert PyTorch weights to MLX format | Only if converting models yourself |
+| `[cloud]` | Google Vertex AI Lyria cloud generation (`google-genai` + `google-auth`) | Only if generating with the cloud Lyria model |
 
 <Tip>
 If you plan to use the web UI or connect a DAW plugin, install `mlx-audiogen[server]`. The server extra includes everything the base install does plus FastAPI, uvicorn, and the bundled React UI.
 </Tip>
 
 Most users can install with `pip install mlx-audiogen[server]` and have everything they need. The `[convert]` extra requires PyTorch and is only needed if you want to convert model weights yourself rather than using the pre-converted MLX weights from HuggingFace.
+
+## Enable the cloud Lyria model (optional)
+
+Every model except Lyria runs entirely on your Mac. **Lyria** is Google's hosted music model on Vertex AI — the only cloud model in MLX AudioGen — and it is **opt-in**. To use it you need the `[cloud]` extra plus a Google Cloud project, and you must accept that your prompts are sent to Google Cloud (the generated audio is also SynthID-watermarked).
+
+<Warning>
+Lyria sends your prompt text to Google Cloud and generates audio there. This is the only place MLX AudioGen leaves your machine — all other models are fully local. Only enable Lyria if that egress is acceptable for your use.
+</Warning>
+
+1. Install the cloud extra (combine it with other extras as needed, e.g. `[server,cloud]`):
+
+   ```bash
+   pip install "mlx-audiogen[cloud]"
+   ```
+
+2. Authenticate with **Application Default Credentials (ADC)** — there is **no API key**. MLX AudioGen uses the host's existing gcloud / Workload Identity Federation login. For local development:
+
+   ```bash
+   gcloud auth application-default login
+   ```
+
+3. Set your Google Cloud project (and optionally a region) in the environment where the server or CLI runs:
+
+   ```bash
+   export GOOGLE_CLOUD_PROJECT="my-gcp-project-id"
+   export GOOGLE_CLOUD_LOCATION="us-central1"   # optional; defaults to us-central1
+   ```
+
+Once `GOOGLE_CLOUD_PROJECT` is set, the Lyria models appear in the web UI selector and in `GET /api/models`. When it is unset, Lyria is simply unavailable and nothing else is affected. See [Lyria](/models#lyria-cloud-google-vertex-ai) for model ids and the difference between the stable `lyria-002` and the `lyria-3-*` preview models.
 
 ## Verify the install
 
