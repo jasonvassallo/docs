@@ -67,6 +67,10 @@ for m in models:
 The `name` field matches the folder name you passed to `--weights-dir`. It is used as the `model` value in `POST /api/generate`. If you registered `./converted/musicgen-small`, the name is `"musicgen-small"`.
 </Note>
 
+<Note>
+This endpoint reports only the MusicGen and Stable Audio pipelines discovered from your weights directories. **MOSS-SoundEffect** is not listed here because it auto-resolves its weights from the HuggingFace cache on first use — it is always available for generation with `model: "moss_sfx"` regardless of what `/api/models` returns.
+</Note>
+
 ---
 
 ## GET /api/llm/models

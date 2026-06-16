@@ -14,10 +14,13 @@ Submit a generation request. The server enqueues the job and returns immediately
 ### Request body
 
 <ParamField body="model" type="string" required>
-  Model to use for generation. Must match `^(musicgen|stable_audio)$`.
+  Model to use for generation. Must match `^(musicgen|stable_audio|moss_sfx)$`.
 
-  - `"musicgen"` — autoregressive, 32 kHz, mono or stereo
-  - `"stable_audio"` — diffusion-based, 44.1 kHz stereo
+  - `"musicgen"` — autoregressive music, 32 kHz, mono or stereo
+  - `"stable_audio"` — diffusion-based music, 44.1 kHz stereo
+  - `"moss_sfx"` — MOSS-SoundEffect text-to-sound-effect, 24 kHz mono
+
+  Default: `"musicgen"`
 </ParamField>
 
 <ParamField body="prompt" type="string" required>
@@ -126,6 +129,26 @@ Submit a generation request. The server enqueues the job and returns immediately
   Default: `0.7`
 </ParamField>
 
+#### MOSS-SoundEffect parameters
+
+These parameters apply when `model` is `"moss_sfx"`. They are ignored by other models.
+
+<ParamField body="top_p" type="float">
+  Nucleus-sampling probability mass for MOSS-SoundEffect. Must be greater than `0.0` and at most `1.0`.
+
+  Default: `0.6`
+</ParamField>
+
+<ParamField body="repetition_penalty" type="float">
+  Penalizes repeated tokens during MOSS-SoundEffect sampling to avoid looping artifacts. Must be between `1.0` and `2.0`.
+
+  Default: `1.2`
+</ParamField>
+
+<Note>
+  MOSS-SoundEffect also reuses the shared `temperature` and `top_k` fields, but with model-specific tuning. Their schema defaults (`temperature: 1.0`, `top_k: 250`) are tuned for MusicGen and degrade MOSS output. If you **omit** `temperature` and/or `top_k` from a `moss_sfx` request, the server substitutes MOSS's recommended defaults — `temperature: 1.5` and `top_k: 50`. Any value you set explicitly is used verbatim, even if it equals a MusicGen default, so to get MOSS-tuned sampling either send `1.5`/`50` or leave those fields out entirely.
+</Note>
+
 <ParamField body="lora" type="string | null">
   Name or path of a LoRA adapter to apply to the MusicGen pipeline. Maximum 200 characters.
 
@@ -191,6 +214,22 @@ print(f"Job submitted: {job_id}")
 }
 ```
 
+#### MOSS-SoundEffect example
+
+Generate a sound effect with `model: "moss_sfx"`. Omitting `temperature`/`top_k` lets the server apply the MOSS-tuned defaults (1.5 / 50):
+
+```bash curl
+curl -X POST http://localhost:8420/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "moss_sfx",
+    "prompt": "heavy wooden door slam with reverb tail",
+    "seconds": 4,
+    "top_p": 0.6,
+    "repetition_penalty": 1.2
+  }'
+```
+
 ---
 
 ## GET /api/status/{id}
@@ -238,7 +277,7 @@ Poll the status of a generation job. Call this repeatedly until `status` is `"do
 </ResponseField>
 
 <ResponseField name="sample_rate" type="integer | null">
-  Sample rate of the generated audio. `null` until the job completes. MusicGen: 32000. Stable Audio: 44100.
+  Sample rate of the generated audio. `null` until the job completes. MusicGen: 32000. Stable Audio: 44100. MOSS-SoundEffect: 24000.
 </ResponseField>
 
 <ResponseField name="has_midi" type="boolean">
