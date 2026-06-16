@@ -80,7 +80,7 @@ The `lyria-002` entry above only appears when the server is configured for cloud
 </Note>
 
 <Note>
-The `name` field matches the folder name you passed to `--weights-dir` (e.g. `"musicgen-small"`) and identifies which local pipeline is loaded. It is **not** the value you send as `model` in `POST /api/generate` — that request takes a model **family** (`"musicgen"`, `"stable_audio"`, or `"moss_sfx"`), which the server resolves to the matching loaded pipeline.
+The `name` field matches the folder name you passed to `--weights-dir` (e.g. `"musicgen-small"`) and identifies which local pipeline is loaded. It is **not** always the value you send as `model` in `POST /api/generate`. For a local model you send a model **family** (`"musicgen"`, `"stable_audio"`, or `"moss_sfx"`), and the server resolves it to the matching loaded pipeline. When Lyria is configured, you can also send a cloud Lyria id directly: `"lyria-002"` (Lyria 2, stable), `"lyria-3-pro-preview"`, or `"lyria-3-clip-preview"` (Lyria 3, preview).
 </Note>
 
 <Note>

@@ -240,7 +240,7 @@ curl -X POST http://localhost:8420/api/generate \
 
 ## Cloud generation with Lyria
 
-Lyria is the only **cloud** model MLX AudioGen exposes. It runs on **Google Vertex AI**, not on your Mac, and is **opt-in** — the `lyria-*` model values are only accepted when the server is configured for it. Use it exactly like a local model: submit to `POST /api/generate`, poll `GET /api/status/{id}`, then download from `GET /api/audio/{id}`. Generation is a single blocking cloud round-trip (batch), so it runs in the same job queue as local generations with no streaming.
+Lyria is the only **cloud** model you can use with MLX AudioGen. It runs on **Google Vertex AI**, not on your Mac. It is also **opt-in** — your server only accepts the `lyria-*` model values once you configure it. You drive Lyria exactly like a local model. Submit your request to `POST /api/generate`, poll `GET /api/status/{id}`, then download your audio from `GET /api/audio/{id}`. Each Lyria generation is a single blocking cloud round-trip (batch). It runs in the same job queue as your local generations, with no streaming.
 
 <Warning>
 **Cloud egress + watermarking.** Selecting a `lyria-*` model sends your prompt to Google Cloud and returns SynthID-watermarked audio. This is unlike every other MLX AudioGen model, which runs entirely on-device. Enable Lyria only if you are comfortable with prompt egress to Google.
@@ -253,7 +253,7 @@ The server only offers Lyria when **both** of these are true:
 - The optional `[cloud]` extra is installed: `pip install "mlx-audiogen[cloud]"` (adds `google-genai` + `google-auth`).
 - The `GOOGLE_CLOUD_PROJECT` environment variable is set to your Google Cloud project id. Optionally set `GOOGLE_CLOUD_LOCATION` (defaults to `us-central1`; only affects `lyria-002`).
 
-Authentication is **Application Default Credentials (ADC)** — there is **no API key**. The server uses whatever ADC / Workload Identity Federation login is configured on the host (for local use, run `gcloud auth application-default login`). When `GOOGLE_CLOUD_PROJECT` is unset, the Lyria models do not appear in [`GET /api/models`](/api/models) and a `lyria-*` generation request fails with an error explaining how to enable it.
+You authenticate with **Application Default Credentials (ADC)** — there is **no API key**. The server uses whatever ADC / Workload Identity Federation login you have configured on the host. For local use, run `gcloud auth application-default login`. When you leave `GOOGLE_CLOUD_PROJECT` unset, the Lyria models do not appear in [`GET /api/models`](/api/models). A `lyria-*` generation request then fails with an error explaining how to enable it.
 
 ### Model ids and supported fields
 
@@ -263,7 +263,7 @@ Authentication is **Application Default Credentials (ADC)** — there is **no AP
 | `lyria-3-pro-preview` | Lyria 3 Pro | **Preview** | No | No | text input only |
 | `lyria-3-clip-preview` | Lyria 3 Clip | **Preview** | No | No | text input only |
 
-Lyria returns fixed-length clips (~30 s for Lyria 2), so `seconds` does not control the cloud generation length — it is used only to trim the returned audio. MusicGen/Stable Audio parameters (`temperature`, `steps`, `cfg_scale`, and so on) are ignored by Lyria.
+Lyria returns fixed-length clips (~30 s for Lyria 2). So `seconds` does not control the cloud generation length. Instead, the server uses `seconds` only to trim the returned audio. Lyria also ignores the MusicGen/Stable Audio parameters you may be used to (`temperature`, `steps`, `cfg_scale`, and so on).
 
 ### Example
 
