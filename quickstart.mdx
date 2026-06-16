@@ -3,7 +3,7 @@ title: "Generate AI audio on Apple Silicon with MLX AudioGen"
 description: "Install MLX AudioGen, generate your first audio clip from a text prompt, and launch the web UI — running entirely on your Apple Silicon Mac."
 ---
 
-MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no usage limits, and no audio data leaving your machine. (The one exception is the opt-in [Lyria](/models#lyria-cloud-google-vertex-ai) cloud model, which is off by default — see below.) Follow the steps below to go from a fresh install to audio playing in your browser.
+MLX AudioGen runs entirely on your Mac's Metal GPU, so you need no API keys, hit no usage limits, and send no audio data off your machine. (Your one exception is the opt-in [Lyria](/models#lyria-cloud-google-vertex-ai) cloud model, which stays off by default — see below.) Follow the steps below to go from a fresh install to audio playing in your browser.
 
 <Note>
   MLX AudioGen requires an Apple Silicon Mac (M1 or later). MLX uses the Metal GPU and does not support Intel Macs, Linux, or Windows.
@@ -86,7 +86,7 @@ MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no
     </Note>
 
     <Note>
-      There is also an opt-in **cloud** model — **Lyria** (Google Vertex AI). Unlike everything else here, it does not run on your Mac: your prompt is sent to Google Cloud and the audio is SynthID-watermarked. It is off by default; enable it with the `[cloud]` extra plus a `GOOGLE_CLOUD_PROJECT` and Application Default Credentials (no API key). See [Lyria](/models#lyria-cloud-google-vertex-ai).
+      You can also opt into a **cloud** model — **Lyria** (Google Vertex AI). Unlike everything else here, it does not run on your Mac. When you use it, MLX AudioGen sends your prompt to Google Cloud and returns SynthID-watermarked audio. It stays off by default. To enable it, install the `[cloud]` extra, then set a `GOOGLE_CLOUD_PROJECT` and configure Application Default Credentials (no API key). See [Lyria](/models#lyria-cloud-google-vertex-ai).
     </Note>
   </Step>
 

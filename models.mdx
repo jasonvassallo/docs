@@ -116,7 +116,7 @@ These defaults are tuned for MOSS-SoundEffect and differ from MusicGen's. The we
 
 ## Lyria (cloud — Google Vertex AI)
 
-Lyria is Google's hosted music-generation model, accessed through Vertex AI. It is the **first and only cloud model** in MLX AudioGen — unlike every other model on this page, it does **not** run on your Mac. Your prompt is sent to Google Cloud, generation happens on Google's infrastructure, and the finished audio is returned. Lyria is **opt-in and off by default**: until you configure it, it never appears in the model selector or the API model list, and the rest of MLX AudioGen stays fully local and offline.
+Lyria is Google's hosted music-generation model. You access it through Vertex AI. It is the **first and only cloud model** in MLX AudioGen. Unlike every other model on this page, it does **not** run on your Mac. When you generate with Lyria, MLX AudioGen sends your prompt to Google Cloud. Google's infrastructure runs the generation. You then receive the finished audio. Lyria is **opt-in and off by default**. Until you configure it, you never see it in the model selector or the API model list. The rest of MLX AudioGen stays fully local and offline.
 
 <Warning>
 **Lyria sends your prompt to Google Cloud.** Every other MLX AudioGen model runs entirely on-device with no data leaving your machine. Lyria is different — when you generate with it, your prompt text is transmitted to Google's Vertex AI and the audio is produced in the cloud. Only enable Lyria if you are comfortable with that egress. Generated audio is also **SynthID-watermarked** by Google (an inaudible watermark identifying it as AI-generated).
@@ -131,12 +131,12 @@ Lyria is Google's hosted music-generation model, accessed through Vertex AI. It 
 | `lyria-3-clip-preview` | Preview | Vertex AI `/interactions` | Lyria 3 Clip — text input only |
 
 <Note>
-**`lyria-002` is Lyria 2 — the stable, verified model.** It returns a ~30-second 48 kHz stereo clip and supports an optional negative prompt and seed. The **`lyria-3-*` models are Lyria 3 in preview** — treat them as experimental: they use a different (newer) Vertex AI endpoint and accept only a text prompt (no negative prompt or seed). For dependable results, prefer `lyria-002`.
+**`lyria-002` is Lyria 2 — the stable, verified model.** It returns a ~30-second 48 kHz stereo clip. You can also pass an optional negative prompt and seed. The **`lyria-3-*` models are Lyria 3 in preview** — treat them as experimental. They use a different (newer) Vertex AI endpoint. They accept only a text prompt, with no negative prompt or seed. For dependable results, prefer `lyria-002`.
 </Note>
 
 ### Enabling Lyria
 
-Lyria requires the optional `[cloud]` extra and a configured Google Cloud project. **There is no API key** — authentication uses Google [Application Default Credentials (ADC)](https://cloud.google.com/docs/authentication/application-default-credentials), so it transparently uses whatever gcloud / Workload Identity Federation login is already set up on the host.
+To use Lyria, you install the optional `[cloud]` extra and configure a Google Cloud project. **There is no API key.** You authenticate with Google [Application Default Credentials (ADC)](https://cloud.google.com/docs/authentication/application-default-credentials). ADC transparently uses whatever gcloud / Workload Identity Federation login you already have set up on the host.
 
 1. Install the cloud extra:
 
@@ -160,10 +160,10 @@ Lyria requires the optional `[cloud]` extra and a configured Google Cloud projec
    export GOOGLE_CLOUD_LOCATION="us-central1"   # optional; defaults to us-central1
    ```
 
-When `GOOGLE_CLOUD_PROJECT` is set, the Lyria models appear in the web UI's model selector (badged as cloud) and in `GET /api/models`. When it is unset, Lyria is simply not offered and nothing else changes. `GOOGLE_CLOUD_LOCATION` only affects the `lyria-002` `:predict` endpoint; the Lyria 3 preview endpoint always uses Google's `global` location.
+Once you set `GOOGLE_CLOUD_PROJECT`, you see the Lyria models in the web UI's model selector (badged as cloud) and in `GET /api/models`. When you leave it unset, MLX AudioGen does not offer Lyria, and nothing else changes. `GOOGLE_CLOUD_LOCATION` only affects the `lyria-002` `:predict` endpoint. The Lyria 3 preview endpoint always uses Google's `global` location.
 
 <Note>
-Lyria runs as an ordinary `/api/generate` job — it is a single blocking cloud round-trip (batch), not a streaming connection. Generate with it the same way you generate with a local model; see the [generation API reference](/api/generation) for the request fields (`negative_prompt` and `seed` apply to `lyria-002`).
+You run Lyria as an ordinary `/api/generate` job. It is a single blocking cloud round-trip (batch), not a streaming connection. Generate with it the same way you generate with a local model. See the [generation API reference](/api/generation) for the request fields (`negative_prompt` and `seed` apply to `lyria-002`).
 </Note>
 
 ## Demucs v4

@@ -106,7 +106,7 @@ Most users can install with `pip install mlx-audiogen[server]` and have everythi
 
 ## Enable the cloud Lyria model (optional)
 
-Every model except Lyria runs entirely on your Mac. **Lyria** is Google's hosted music model on Vertex AI — the only cloud model in MLX AudioGen — and it is **opt-in**. To use it you need the `[cloud]` extra plus a Google Cloud project, and you must accept that your prompts are sent to Google Cloud (the generated audio is also SynthID-watermarked).
+Every model except Lyria runs entirely on your Mac. **Lyria** is Google's hosted music model on Vertex AI. It is the only cloud model in MLX AudioGen, and it is **opt-in**. To use it, you install the `[cloud]` extra and configure a Google Cloud project. You also accept that MLX AudioGen sends your prompts to Google Cloud. Google additionally SynthID-watermarks the generated audio.
 
 <Warning>
 Lyria sends your prompt text to Google Cloud and generates audio there. This is the only place MLX AudioGen leaves your machine — all other models are fully local. Only enable Lyria if that egress is acceptable for your use.
@@ -118,7 +118,7 @@ Lyria sends your prompt text to Google Cloud and generates audio there. This is 
    pip install "mlx-audiogen[cloud]"
    ```
 
-2. Authenticate with **Application Default Credentials (ADC)** — there is **no API key**. MLX AudioGen uses the host's existing gcloud / Workload Identity Federation login. For local development:
+2. Authenticate with **Application Default Credentials (ADC)** — there is **no API key**. MLX AudioGen uses your host's existing gcloud / Workload Identity Federation login. For local development, run:
 
    ```bash
    gcloud auth application-default login
@@ -131,7 +131,7 @@ Lyria sends your prompt text to Google Cloud and generates audio there. This is 
    export GOOGLE_CLOUD_LOCATION="us-central1"   # optional; defaults to us-central1
    ```
 
-Once `GOOGLE_CLOUD_PROJECT` is set, the Lyria models appear in the web UI selector and in `GET /api/models`. When it is unset, Lyria is simply unavailable and nothing else is affected. See [Lyria](/models#lyria-cloud-google-vertex-ai) for model ids and the difference between the stable `lyria-002` and the `lyria-3-*` preview models.
+Once you set `GOOGLE_CLOUD_PROJECT`, you see the Lyria models in the web UI selector and in `GET /api/models`. When you leave it unset, Lyria stays unavailable, and nothing else is affected. See [Lyria](/models#lyria-cloud-google-vertex-ai) for model ids and the difference between the stable `lyria-002` and the `lyria-3-*` preview models.
 
 ## Verify the install
 
