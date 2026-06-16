@@ -64,7 +64,7 @@ for m in models:
 ```
 
 <Note>
-The `name` field matches the folder name you passed to `--weights-dir`. It is used as the `model` value in `POST /api/generate`. If you registered `./converted/musicgen-small`, the name is `"musicgen-small"`.
+The `name` field matches the folder name you passed to `--weights-dir` (e.g. `"musicgen-small"`) and identifies which local pipeline is loaded. It is **not** the value you send as `model` in `POST /api/generate` — that request takes a model **family** (`"musicgen"`, `"stable_audio"`, or `"moss_sfx"`), which the server resolves to the matching loaded pipeline.
 </Note>
 
 <Note>
