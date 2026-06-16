@@ -249,6 +249,14 @@ Poll the status of a generation job. Call this repeatedly until `status` is `"do
   Whether the job has been starred as a favorite.
 </ResponseField>
 
+<ResponseField name="detected_key" type="string | null">
+  Detected musical key of the generated audio, e.g. `"A minor"` or `"F# major"`. Detection runs for every generation. `"unknown"` means detection ran but found no clear key (silence or atonal material); `null` means the key was not recorded (a job from before key detection existed, or a detector failure — the generation is unaffected either way).
+</ResponseField>
+
+<ResponseField name="key_confidence" type="float | null">
+  Confidence of the detected key from `0.0` to `1.0`. `null` whenever `detected_key` is `null`.
+</ResponseField>
+
 <ResponseField name="quality_overall" type="float | null">
   Automated quality score from `0.0` (poor) to `1.0` (clean), computed after the job completes. Only present for generations that used a LoRA adapter; `null` otherwise.
 </ResponseField>
@@ -262,7 +270,11 @@ Poll the status of a generation job. Call this repeatedly until `status` is `"do
 </ResponseField>
 
 <Note>
-  **Automated quality metrics.** When a generation uses a LoRA adapter, MLX AudioGen runs a lightweight, pure-numpy health analysis on the output and reports it as `quality_overall` (0–1) plus `quality_flags`. The same metrics underpin the flywheel's self-correction capability: when a retrained adapter version scores worse than the version before it, the flywheel keeps the older, better version active instead of promoting a regression.
+  **Automated quality metrics.** When a generation uses a LoRA adapter, MLX AudioGen runs a lightweight, pure-numpy health analysis on the output and reports it as `quality_overall` (0–1) plus `quality_flags`. The same metrics underpin the flywheel's self-correction capability: when a retrained adapter version scores worse than the version before it, the flywheel keeps the older, better version active instead of promoting a regression. See [Flywheel auto-retrain](#flywheel-auto-retrain).
+</Note>
+
+<Note>
+  **Key detection.** Every generation reports a detected musical key in `detected_key` (with `key_confidence`), estimated from the audio's chroma profile via the Krumhansl–Kessler key profiles. It is best-effort telemetry — a detection failure leaves the key unset and never affects the generated audio. In the web UI, the detected key appears as a badge on each history entry.
 </Note>
 
 ### Example
@@ -310,6 +322,8 @@ result = wait_for_job("a3f1c2d4")
   "sample_rate": 32000,
   "has_midi": true,
   "starred": false,
+  "detected_key": "A minor",
+  "key_confidence": 0.78,
   "quality_overall": 0.86,
   "quality_flags": [],
   "error": null
@@ -442,4 +456,95 @@ for job in jobs:
     "error": null
   }
 ]
+```
+
+---
+
+## Flywheel auto-retrain
+
+The flywheel turns the generations you star into improved LoRA adapters. Each time you star a generation made with an adapter, the flywheel counts it; once the count crosses the adapter's retrain threshold, a retrain is triggered automatically. You can also trigger one manually.
+
+A retrain runs end to end on a background thread: build a fresh training set from your library and starred generations → train a new adapter version → evaluate it with the [automated quality metrics](#get-apistatusid) → and gate the result. If the new version scores worse than the version before it, the flywheel keeps the previous version active instead of promoting the regression. This is what makes the quality gate self-correcting — only versions that hold up are kept.
+
+### POST /api/flywheel/retrain/\{name\}
+
+Manually trigger a retrain for an adapter. Returns immediately with a retrain job ID; poll `GET /api/flywheel/retrain/status/{name}` for live progress. Only one retrain runs at a time across the server.
+
+<ParamField path="name" type="string" required>
+  Adapter name. Must not contain `..`, `/`, or `\`.
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Retrain job ID. Present when `status` is `"started"`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  `"started"` when the retrain began, or `"skipped"` if a retrain (or a user training run) is already in progress.
+</ResponseField>
+
+<ResponseField name="adapter" type="string">
+  The adapter name.
+</ResponseField>
+
+<ResponseField name="reason" type="string">
+  Why the retrain was skipped (e.g. `"already running"` or `"training in progress"`). Present only when `status` is `"skipped"`.
+</ResponseField>
+
+```bash
+curl -X POST http://localhost:8420/api/flywheel/retrain/my-lofi-lora
+```
+
+```json Response
+{
+  "id": "b7e2",
+  "status": "started",
+  "adapter": "my-lofi-lora"
+}
+```
+
+### GET /api/flywheel/retrain/status/\{name\}
+
+Poll the live status of an adapter's retrain.
+
+<ParamField path="name" type="string" required>
+  Adapter name. Must not contain `..`, `/`, or `\`.
+</ParamField>
+
+<ResponseField name="adapter" type="string">
+  The adapter name.
+</ResponseField>
+
+<ResponseField name="phase" type="string">
+  Current phase: `"idle"` (never retrained), `"building"`, `"training"`, `"evaluating"`, then a terminal phase — `"done"` (new version accepted), `"regressed"` (new version scored worse, previous version kept active), `"error"`, or `"skipped"`.
+</ResponseField>
+
+<ResponseField name="version" type="string | null">
+  The new adapter version created during this retrain (e.g. `"v3"`). Present once a version exists.
+</ResponseField>
+
+<ResponseField name="accepted" type="boolean | null">
+  Whether the new version was promoted to active. `false` when it regressed and the previous version was kept.
+</ResponseField>
+
+<ResponseField name="mean_score" type="float | null">
+  Mean quality score of the new version's evaluation set (`0.0`–`1.0`). Present in terminal phases.
+</ResponseField>
+
+<ResponseField name="error" type="string | null">
+  Error message if `phase` is `"error"`. `null` otherwise.
+</ResponseField>
+
+```bash
+curl http://localhost:8420/api/flywheel/retrain/status/my-lofi-lora
+```
+
+```json Response
+{
+  "adapter": "my-lofi-lora",
+  "phase": "done",
+  "version": "v3",
+  "accepted": true,
+  "mean_score": 0.84,
+  "error": null
+}
 ```
