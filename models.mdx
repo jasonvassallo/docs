@@ -1,9 +1,9 @@
 ---
-title: "Supported models: MusicGen, Stable Audio, MOSS-SoundEffect, and Demucs"
-description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, MOSS-SoundEffect, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
+title: "Supported models: MusicGen, Stable Audio, MOSS-SoundEffect, Lyria, and Demucs"
+description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, MOSS-SoundEffect, the cloud Lyria models, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
 ---
 
-MLX AudioGen supports four model families: MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-sound-effect generation, and Demucs v4 for stem separation. Each family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for all variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use.
+MLX AudioGen runs four on-device model families plus one opt-in cloud model. **On-device:** MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-sound-effect generation, and Demucs v4 for stem separation — all running locally on your Mac's Metal GPU. **Cloud:** Lyria, Google's hosted music model on Vertex AI, is the first non-local model and is off by default. Each on-device family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for all on-device variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use.
 
 <Tip>
 If you're using MLX AudioGen for the first time, start with a small model. The `musicgen-small` and `stable-audio-open-small` variants download and run fastest, and they produce good results for most prompts. Switch to larger variants once you're comfortable with the generation workflow.
@@ -114,6 +114,58 @@ MOSS-SoundEffect uses autoregressive sampling parameters. In the web UI, selecti
 These defaults are tuned for MOSS-SoundEffect and differ from MusicGen's. The web UI seeds them automatically when you select the model. Over the HTTP API, `top_p` and `repetition_penalty` default to MOSS-appropriate values, and when you omit `temperature`/`top_k` the server substitutes the MOSS defaults (1.5 / 50) in place of the MusicGen schema defaults. See the [generation API reference](/api/generation) for the exact wire-format defaults.
 </Note>
 
+## Lyria (cloud — Google Vertex AI)
+
+Lyria is Google's hosted music-generation model, accessed through Vertex AI. It is the **first and only cloud model** in MLX AudioGen — unlike every other model on this page, it does **not** run on your Mac. Your prompt is sent to Google Cloud, generation happens on Google's infrastructure, and the finished audio is returned. Lyria is **opt-in and off by default**: until you configure it, it never appears in the model selector or the API model list, and the rest of MLX AudioGen stays fully local and offline.
+
+<Warning>
+**Lyria sends your prompt to Google Cloud.** Every other MLX AudioGen model runs entirely on-device with no data leaving your machine. Lyria is different — when you generate with it, your prompt text is transmitted to Google's Vertex AI and the audio is produced in the cloud. Only enable Lyria if you are comfortable with that egress. Generated audio is also **SynthID-watermarked** by Google (an inaudible watermark identifying it as AI-generated).
+</Warning>
+
+### Variants
+
+| Model id | Status | Endpoint | Output |
+|---|---|---|---|
+| `lyria-002` | Stable | Vertex AI publisher `:predict` | ~30 s, 48 kHz stereo WAV |
+| `lyria-3-pro-preview` | Preview | Vertex AI `/interactions` | Lyria 3 Pro — text input only |
+| `lyria-3-clip-preview` | Preview | Vertex AI `/interactions` | Lyria 3 Clip — text input only |
+
+<Note>
+**`lyria-002` is Lyria 2 — the stable, verified model.** It returns a ~30-second 48 kHz stereo clip and supports an optional negative prompt and seed. The **`lyria-3-*` models are Lyria 3 in preview** — treat them as experimental: they use a different (newer) Vertex AI endpoint and accept only a text prompt (no negative prompt or seed). For dependable results, prefer `lyria-002`.
+</Note>
+
+### Enabling Lyria
+
+Lyria requires the optional `[cloud]` extra and a configured Google Cloud project. **There is no API key** — authentication uses Google [Application Default Credentials (ADC)](https://cloud.google.com/docs/authentication/application-default-credentials), so it transparently uses whatever gcloud / Workload Identity Federation login is already set up on the host.
+
+1. Install the cloud extra:
+
+   ```bash
+   pip install "mlx-audiogen[cloud]"
+   ```
+
+2. Authenticate with Application Default Credentials (one of):
+
+   ```bash
+   # Local development — opens a browser login
+   gcloud auth application-default login
+   ```
+
+   On a server you would instead use a service account or Workload Identity Federation; ADC picks up whichever is configured.
+
+3. Point MLX AudioGen at your project (and, optionally, a region):
+
+   ```bash
+   export GOOGLE_CLOUD_PROJECT="my-gcp-project-id"
+   export GOOGLE_CLOUD_LOCATION="us-central1"   # optional; defaults to us-central1
+   ```
+
+When `GOOGLE_CLOUD_PROJECT` is set, the Lyria models appear in the web UI's model selector (badged as cloud) and in `GET /api/models`. When it is unset, Lyria is simply not offered and nothing else changes. `GOOGLE_CLOUD_LOCATION` only affects the `lyria-002` `:predict` endpoint; the Lyria 3 preview endpoint always uses Google's `global` location.
+
+<Note>
+Lyria runs as an ordinary `/api/generate` job — it is a single blocking cloud round-trip (batch), not a streaming connection. Generate with it the same way you generate with a local model; see the [generation API reference](/api/generation) for the request fields (`negative_prompt` and `seed` apply to `lyria-002`).
+</Note>
+
 ## Demucs v4
 
 Demucs v4 (HTDemucs) is Meta's hybrid source separation model. It takes a stereo audio file and splits it into separate stems. Unlike the generation models, Demucs does not take a text prompt — it analyzes the audio signal directly.
@@ -147,5 +199,8 @@ Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Ne
   </Accordion>
   <Accordion title="I want to split a mixed track into individual stems">
     Use **HTDemucs** for 4-stem separation (drums, bass, vocals, other), or **htdemucs_6s** if you also need guitar and piano isolated separately.
+  </Accordion>
+  <Accordion title="I want Google's Lyria model and I'm OK sending prompts to the cloud">
+    Use **Lyria** (`lyria-002`). It runs on Google Vertex AI rather than on your Mac, so your prompt is sent to Google Cloud and the audio is SynthID-watermarked. Enable it with the `[cloud]` extra plus a `GOOGLE_CLOUD_PROJECT` and Application Default Credentials — no API key. The `lyria-3-*` variants are preview/experimental. See [Lyria](#lyria-cloud-google-vertex-ai) above.
   </Accordion>
 </AccordionGroup>
