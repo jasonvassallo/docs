@@ -1,16 +1,16 @@
 ---
 title: "MLX AudioGen: AI audio generation on Apple Silicon"
-description: "MLX AudioGen generates music and audio from text prompts on Apple Silicon — MusicGen, Stable Audio Open, and Demucs stem separation, all on-device."
+description: "MLX AudioGen generates music and audio from text prompts on Apple Silicon — MusicGen, Stable Audio Open, MOSS-SoundEffect, and Demucs stem separation, all on-device."
 ---
 
-MLX AudioGen lets you generate professional-quality music and audio from text prompts directly on your Apple Silicon Mac. Using the MLX framework, all inference runs on your local Metal GPU — no API keys, no usage limits, no data leaving your machine. It supports MusicGen (autoregressive), Stable Audio Open (diffusion), and Demucs v4 stem separation, with a full stack of interfaces: CLI, HTTP server, React web UI, VST3/AU plugin, and Max for Live.
+MLX AudioGen lets you generate professional-quality music and audio from text prompts directly on your Apple Silicon Mac. Using the MLX framework, all inference runs on your local Metal GPU — no API keys, no usage limits, no data leaving your machine. It supports MusicGen (autoregressive), Stable Audio Open (diffusion), MOSS-SoundEffect (text-to-sound-effect), and Demucs v4 stem separation, with a full stack of interfaces: CLI, HTTP server, React web UI, VST3/AU plugin, and Max for Live.
 
 <CardGroup cols={2}>
   <Card title="Quick Start" icon="rocket" href="/quickstart">
     Install MLX AudioGen and generate your first audio clip in minutes.
   </Card>
   <Card title="Supported Models" icon="microchip" href="/models">
-    Browse MusicGen, Stable Audio Open, and Demucs model variants with specs.
+    Browse MusicGen, Stable Audio Open, MOSS-SoundEffect, and Demucs model variants with specs.
   </Card>
   <Card title="CLI Reference" icon="terminal" href="/reference/cli">
     Complete reference for all CLI commands and parameters.
@@ -54,6 +54,9 @@ MLX AudioGen lets you generate professional-quality music and audio from text pr
   </Card>
   <Card title="Stable Audio Open" icon="waveform" href="/guides/stable-audio">
     Diffusion-based stereo generation at 44.1 kHz with negative prompts and audio-to-audio support.
+  </Card>
+  <Card title="MOSS-SoundEffect" icon="volume-high" href="/models#moss-soundeffect">
+    Text-to-sound-effect generation at 24 kHz — impacts, foley, and ambiences. Web UI and API.
   </Card>
   <Card title="Stem Separation" icon="sliders" href="/guides/stem-separation">
     Split any audio into drums, bass, vocals, and other with Demucs v4 — fully on-device.

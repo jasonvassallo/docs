@@ -55,7 +55,7 @@ MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no
   </Step>
 
   <Step title="Try both models">
-    MLX AudioGen supports two distinct generation architectures. Experiment with both to find the right fit for your use case:
+    The `mlx-audiogen` CLI generates with two distinct architectures. Experiment with both to find the right fit for your use case:
 
     ```bash
     # MusicGen — autoregressive, 32 kHz mono
@@ -80,6 +80,10 @@ MLX AudioGen runs entirely on your Mac's Metal GPU, so there are no API keys, no
     ```bash
     mlx-audiogen --help
     ```
+
+    <Note>
+      A third generation model — **MOSS-SoundEffect** for text-to-sound-effect generation (24 kHz mono) — is available in the [web UI](/integrations/web-ui) and over the [HTTP API](/api/generation) (`model: "moss_sfx"`), but not from the `mlx-audiogen` command-line tool.
+    </Note>
   </Step>
 
   <Step title="Save to a specific file">

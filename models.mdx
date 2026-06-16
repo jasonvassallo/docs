@@ -1,9 +1,9 @@
 ---
-title: "Supported models: MusicGen, Stable Audio, and Demucs"
-description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
+title: "Supported models: MusicGen, Stable Audio, MOSS-SoundEffect, and Demucs"
+description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, MOSS-SoundEffect, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
 ---
 
-MLX AudioGen supports three model families: MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, and Demucs v4 for stem separation. Each family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for all variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use.
+MLX AudioGen supports four model families: MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-sound-effect generation, and Demucs v4 for stem separation. Each family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for all variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use.
 
 <Tip>
 If you're using MLX AudioGen for the first time, start with a small model. The `musicgen-small` and `stable-audio-open-small` variants download and run fastest, and they produce good results for most prompts. Switch to larger variants once you're comfortable with the generation workflow.
@@ -83,6 +83,37 @@ Stable Audio uses different generation parameters than MusicGen:
 | `--sampler` | `euler` | ODE sampler — `euler` or `rk4` |
 | `--negative-prompt` | `""` | Describe what you don't want in the output |
 
+## MOSS-SoundEffect
+
+MOSS-SoundEffect is a text-to-sound-effect model from OpenMOSS. Instead of music, it generates sound effects — impacts, ambiences, foley, whooshes, and other non-musical audio — from a text prompt. It pairs a Qwen3-8B autoregressive language-model backbone with a 16-codebook RVQ audio tokenizer (delay-pattern decoding) and outputs mono audio at 24 kHz. The weights are quantized to 4-bit and licensed under Apache-2.0.
+
+<Note>
+MOSS-SoundEffect is available through the [web UI](/integrations/web-ui) and the [HTTP API](/api/generation) (`model: "moss_sfx"`). It is not exposed by the `mlx-audiogen` command-line tool, which generates with MusicGen and Stable Audio only.
+</Note>
+
+### Variants
+
+| Variant | HuggingFace repo | Output | License |
+|---|---|---|---|
+| moss-sfx (4-bit) | `mlx-community/MOSS-SoundEffect-MLX-4bit` | 24 kHz mono | Apache-2.0 |
+
+MOSS-SoundEffect runs through the [`mlx-speech`](https://pypi.org/project/mlx-speech/) package, which auto-resolves both the model weights and its companion `appautomaton/openmoss-audio-tokenizer-mlx` codec from the HuggingFace cache on first use. Because the weights resolve on demand, the model is always offered in the web UI's model selector even before a local copy has been downloaded.
+
+### MOSS-SoundEffect parameters
+
+MOSS-SoundEffect uses autoregressive sampling parameters. In the web UI, selecting the MOSS-SoundEffect model exposes these sliders:
+
+| Parameter | Default | Range | Description |
+|---|---|---|---|
+| Temperature | 1.5 | 0.1–2.0 | Sampling temperature — higher values produce more varied output |
+| Top K | 50 | 1–500 | Number of top-k token candidates considered at each step |
+| Top P | 0.6 | 0.05–1.0 | Nucleus-sampling probability mass |
+| Repetition Penalty | 1.2 | 1.0–2.0 | Penalizes repeated tokens to avoid looping artifacts |
+
+<Note>
+These defaults are tuned for MOSS-SoundEffect and differ from MusicGen's. The web UI seeds them automatically when you select the model. Over the HTTP API, `top_p` and `repetition_penalty` default to MOSS-appropriate values, and when you omit `temperature`/`top_k` the server substitutes the MOSS defaults (1.5 / 50) in place of the MusicGen schema defaults. See the [generation API reference](/api/generation) for the exact wire-format defaults.
+</Note>
+
 ## Demucs v4
 
 Demucs v4 (HTDemucs) is Meta's hybrid source separation model. It takes a stereo audio file and splits it into separate stems. Unlike the generation models, Demucs does not take a text prompt — it analyzes the audio signal directly.
@@ -110,6 +141,9 @@ Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Ne
   </Accordion>
   <Accordion title="I want to match the timbre or texture of a reference track">
     Use **MusicGen Style**. Pass your reference audio with `--style-audio reference.wav`. MERT extracts timbral features from the reference and blends them with your text prompt using dual classifier-free guidance.
+  </Accordion>
+  <Accordion title="I want to generate a sound effect, not music">
+    Use **MOSS-SoundEffect**. Describe the sound — for example "heavy wooden door slam" or "distant thunder rumble" — and it generates a 24 kHz mono effect. It's available in the web UI and over the HTTP API (`model: "moss_sfx"`), not the CLI.
   </Accordion>
   <Accordion title="I want to split a mixed track into individual stems">
     Use **HTDemucs** for 4-stem separation (drums, bass, vocals, other), or **htdemucs_6s** if you also need guitar and piano isolated separately.
