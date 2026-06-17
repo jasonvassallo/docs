@@ -1,6 +1,6 @@
 ---
 title: "Prompt enhancement and AI suggestion API endpoints"
-description: "Use /api/suggest, /api/enhance, /api/midi-to-prompt, /api/tags, and /api/health to build smarter prompts and verify server connectivity in MLX AudioGen."
+description: "Use /api/suggest, /api/enhance, /api/enhance/themes, /api/midi-to-prompt, /api/tags, and /api/health to build smarter prompts and verify server connectivity in MLX AudioGen."
 ---
 
 MLX AudioGen includes a set of prompt intelligence endpoints that help you write better generation prompts. You can analyze an existing prompt to get refined suggestions, enhance a prompt using a local LLM, convert a MIDI file into a descriptive text prompt, or retrieve the full tag database for autocomplete. These endpoints work even without an LLM installed — a template fallback handles enhancement and suggestions when no LLM model is selected.
@@ -98,6 +98,12 @@ Enhance a prompt using a local LLM or template fallback. When an LLM is selected
   Default: `""`
 </ParamField>
 
+<ParamField body="theme" type="string">
+  Optional style theme to bias the rewrite toward — for example `"cinematic"` or `"lo-fi"`. When set, the LLM steers the enhanced prompt toward that aesthetic. You can pass any free-form theme, not just the built-in labels returned by `GET /api/enhance/themes`. The server collapses surrounding whitespace before applying it. Maximum 64 characters. Leave it out (or pass `""`) to keep the previous, theme-neutral behavior. Has no effect on the template fallback. 
+
+  Default: `""`
+</ParamField>
+
 ### Response
 
 <ResponseField name="enhanced" type="string">
@@ -130,6 +136,7 @@ resp = requests.post(
     json={
         "prompt": "sad violin",
         "memory_context": "User often generates jazz and ambient music.",
+        "theme": "cinematic",
     },
 )
 print(resp.json()["enhanced"])
@@ -142,6 +149,52 @@ print(resp.json()["enhanced"])
   "enhanced": "melancholic solo violin, slow tempo, minor key, sparse reverb, classical chamber music atmosphere",
   "original": "sad violin",
   "method": "template"
+}
+```
+
+---
+
+## GET /api/enhance/themes
+
+List the built-in style themes you can pass as the `theme` field to `POST /api/enhance`. Use this to populate a theme picker in your own UI — the web UI's Enhance dropdown is built from this list. Free-form themes are also accepted by `/api/enhance`, so this list is a convenience set, not a closed enum.
+
+### Response
+
+<ResponseField name="themes" type="array">
+  Array of built-in theme label strings.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/enhance/themes
+```
+
+```python Python
+import requests
+
+themes = requests.get("http://localhost:8420/api/enhance/themes").json()["themes"]
+print(themes)
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "themes": [
+    "cinematic",
+    "lo-fi",
+    "energetic",
+    "ambient",
+    "retro",
+    "orchestral",
+    "dark",
+    "uplifting",
+    "experimental",
+    "minimal"
+  ]
 }
 ```
 
