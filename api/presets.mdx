@@ -1,6 +1,6 @@
 ---
 title: "Save and load audio generation presets via the API"
-description: "Use GET and POST /api/presets to save, list, and load named generation parameter sets, and manage server settings with GET and POST /api/settings."
+description: "Use GET and POST /api/presets to save, list, and load named generation parameter sets, save reusable prompt templates with /api/prompt-templates, and manage server settings with GET and POST /api/settings."
 ---
 
 Presets let you save a complete set of generation parameters — model, prompt, duration, temperature, and all other fields — under a named key. You can load them back later to reproduce a specific configuration without re-specifying every parameter. Presets are stored as `.mlxpreset` files in `~/.mlx-audiogen/presets/` and are shared between the web UI and the API.
@@ -201,6 +201,154 @@ print(resp.json())
 ```
 
 Returns `HTTP 400` if the sanitized name resolves to an empty string.
+
+---
+
+## GET /api/prompt-templates
+
+List all saved prompt templates. A prompt template is a named, reusable prompt string. They're handy for starting points you tweak before generating, and often contain freeform `{placeholders}` you fill in after inserting the template. Templates are stored server-side under `~/.mlx-audiogen/prompt_templates/` and are shared between the web UI and the API.
+
+### Response
+
+Returns an array of template objects. The response never includes filesystem paths.
+
+<ResponseField name="name" type="string">
+  Template identifier.
+</ResponseField>
+
+<ResponseField name="text" type="string">
+  The saved prompt text. May contain freeform `{placeholders}` for you to edit after inserting.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl http://localhost:8420/api/prompt-templates
+```
+
+```python Python
+import requests
+
+templates = requests.get("http://localhost:8420/api/prompt-templates").json()
+for t in templates:
+    print(f"{t['name']}: {t['text']}")
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "name": "film-cue",
+    "text": "{mood} cinematic underscore, {instrument} lead, slow build, wide stereo reverb"
+  },
+  {
+    "name": "lofi-beat",
+    "text": "lo-fi hip-hop beat, dusty drums, mellow Rhodes, vinyl crackle, {bpm} BPM"
+  }
+]
+```
+
+---
+
+## POST /api/prompt-templates
+
+Save a prompt template, or overwrite an existing one with the same name.
+
+### Request body
+
+<ParamField body="name" type="string" required>
+  Template name. Must match the pattern `^[a-zA-Z0-9_-]{1,64}$` — letters, digits, underscores, and hyphens only, 1 to 64 characters.
+</ParamField>
+
+<ParamField body="text" type="string" required>
+  The prompt text to save. Between 1 and 2000 characters. May contain freeform `{placeholders}` you edit after inserting the template.
+</ParamField>
+
+### Response
+
+<ResponseField name="saved" type="string">
+  The name the template was saved under.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/prompt-templates \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "film-cue",
+    "text": "{mood} cinematic underscore, {instrument} lead, slow build, wide stereo reverb"
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "http://localhost:8420/api/prompt-templates",
+    json={
+        "name": "film-cue",
+        "text": "{mood} cinematic underscore, {instrument} lead, slow build, wide stereo reverb",
+    },
+)
+print(resp.json())
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "saved": "film-cue"
+}
+```
+
+---
+
+## DELETE /api/prompt-templates/{name}
+
+Delete a saved prompt template by name.
+
+### Path parameters
+
+<ParamField path="name" type="string" required>
+  Template name to delete. Must match the same pattern as on save: `^[a-zA-Z0-9_-]{1,64}$`.
+</ParamField>
+
+### Response
+
+<ResponseField name="deleted" type="string">
+  The name of the template that was deleted.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X DELETE http://localhost:8420/api/prompt-templates/film-cue
+```
+
+```python Python
+import requests
+
+resp = requests.delete("http://localhost:8420/api/prompt-templates/film-cue")
+print(resp.json())
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "deleted": "film-cue"
+}
+```
+
+Returns `HTTP 404` if no template with that name exists.
 
 ---
 

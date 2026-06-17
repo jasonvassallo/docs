@@ -64,12 +64,16 @@ A single background worker processes one job at a time (MLX is GPU-bound on Appl
 | `GET` | `/api/jobs` | List all active and recent jobs |
 | `GET` | `/api/health` | Health check — returns `200 OK` when the server is running |
 | `POST` | `/api/suggest` | Analyze a prompt and return refined suggestions |
-| `POST` | `/api/enhance` | Enhance a prompt via local LLM or template fallback |
+| `POST` | `/api/enhance` | Enhance a prompt via local LLM or template fallback (optional `theme`) |
+| `GET` | `/api/enhance/themes` | List the built-in enhancement style themes |
 | `POST` | `/api/midi-to-prompt` | Convert a MIDI file to a descriptive text prompt |
 | `POST` | `/api/separate/{id}` | Separate a completed job's audio into stems using Demucs v4 |
 | `GET` | `/api/presets` | List saved presets |
 | `POST` | `/api/presets/{name}` | Save a preset |
 | `GET` | `/api/presets/{name}` | Load a preset by name |
+| `GET` | `/api/prompt-templates` | List saved prompt templates |
+| `POST` | `/api/prompt-templates` | Save a prompt template |
+| `DELETE` | `/api/prompt-templates/{name}` | Delete a prompt template by name |
 | `GET` | `/api/tags` | Tag database for prompt autocomplete |
 | `GET` | `/api/llm/models` | List discovered local LLM models |
 | `POST` | `/api/llm/select` | Select and load a local LLM model |
