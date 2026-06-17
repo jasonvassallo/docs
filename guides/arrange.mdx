@@ -3,7 +3,7 @@ title: "Build multi-track arrangements in the Arrange tab"
 description: "Assemble generations, imported audio, and split stems into a DAW-style timeline — trim, fade, crossfade, and export a stereo mix, all in your browser."
 ---
 
-The **Arrange** tab is a DAW-style multi-track timeline built into the MLX AudioGen web UI. You lay your generations, imported audio files, and separated stems out across lanes, trim and fade them on a shared timeline, mix levels and panning, and export the whole thing to a single stereo file (WAV, AIFF, or FLAC). Everything runs client-side in the browser — there is no extra server setup, and the arrangement state lives in your browser, not on the server.
+The **Arrange** tab is a DAW-style multi-track timeline in the MLX AudioGen web UI. You place generations, imported audio files, and separated stems across lanes. You trim and fade clips on a shared timeline. You mix levels and panning, then export a single stereo file (WAV, AIFF, or FLAC). Everything runs client-side in your browser. You do not need extra server setup. Your arrangement state stays in your browser, not on the server.
 
 Arrange is the sixth tab in the sidebar (keyboard shortcut `6`), alongside Generate, Suggest, Train, Library, and Settings.
 
@@ -238,10 +238,10 @@ Click **Export Mix** to render the entire arrangement — every lane's volume an
 
 Two selectors next to **Export Mix** control the output file:
 
-- **Format** — choose **WAV**, **AIFF**, or **FLAC**. All three are lossless. WAV and AIFF are uncompressed; **FLAC** is losslessly compressed, so it produces a noticeably smaller file with identical audio — handy for archiving or sharing. Pick whichever your DAW prefers.
-- **Bit depth** — choose **16-bit** (the default) or **24-bit**. Pick 24-bit when you want extra headroom and dynamic range for further editing or mastering; 16-bit is fine for general listening and smaller files. The bit-depth setting applies to all three formats.
+- **Format** — choose **WAV**, **AIFF**, or **FLAC**. All three formats are lossless. WAV and AIFF are uncompressed. **FLAC** is losslessly compressed, so file size is smaller with identical audio quality. Choose the format your DAW prefers.
+- **Bit depth** — choose **16-bit** (default) or **24-bit**. Choose 24-bit when you need more headroom and dynamic range for editing or mastering. Choose 16-bit for general listening and smaller files. The bit-depth setting applies to all three formats.
 
-A **progress bar** appears while the mix renders, so you can track longer arrangements as they bounce down. The file downloads automatically when the render finishes. FLAC is encoded in a background worker so the UI stays responsive on long mixes.
+A **progress bar** appears while the mix renders. You can track long arrangements as they bounce down. The file downloads automatically when rendering finishes. FLAC encoding runs in a background worker, so the UI stays responsive on long mixes.
 
 ## Tips and current limits
 
