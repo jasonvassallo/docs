@@ -1,0 +1,56 @@
+name: Claude Code
+
+# PUBLIC docs repo. Hands-off auto-review ONLY, and ONLY on same-repo (non-fork)
+# PRs: a fork PR gets a read-only token with no access to CLAUDE_CODE_OAUTH_TOKEN,
+# so it is skipped (fail-closed — no secret exposure). There is intentionally NO
+# "@claude" on-demand job here (that would let any commenter on a public repo
+# trigger billed runs / stranger-spend).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: claude-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-auto-review:
+    if: |
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Claude auto-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            This is a Mintlify documentation site (.mdx/.md content + a docs.json
+            navigation file). The PR branch is checked out. Review ONLY this PR's
+            diff. Focus on:
+
+            1. Accuracy - technical claims, commands, flags, code samples, and
+               API/endpoint references that are wrong, outdated, or inconsistent.
+            2. Docs quality - clarity, broken/stale links, wrong relative paths,
+               malformed MDX/frontmatter, broken components, and docs.json nav
+               entries that don't match added/renamed pages.
+            3. Consistency - terminology, naming, and style vs the rest of the docs.
+
+            Post specific issues as INLINE review comments on the exact lines.
+            Use one top-level comment for general observations. Be concise; do
+            not restate unchanged prose.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
