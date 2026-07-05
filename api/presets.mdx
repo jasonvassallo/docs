@@ -206,7 +206,7 @@ Returns `HTTP 400` if the sanitized name resolves to an empty string.
 
 ## GET /api/prompt-templates
 
-List all saved prompt templates. A prompt template is a named, reusable prompt string. They're handy for starting points you tweak before generating, and often contain freeform `{placeholders}` you fill in after inserting the template. Templates are stored server-side under `~/.mlx-audiogen/prompt_templates/` and are shared between the web UI and the API.
+List all saved prompt templates. A prompt template is a named, reusable prompt string. Templates are handy as starting points you tweak before generating. They often contain freeform `{placeholders}` you fill in after inserting the template. Templates are stored server-side under `~/.mlx-audiogen/prompt_templates/` and are shared between the web UI and the API.
 
 ### Response
 
@@ -272,6 +272,8 @@ Save a prompt template, or overwrite an existing one with the same name.
 <ResponseField name="saved" type="string">
   The name the template was saved under.
 </ResponseField>
+
+Returns `HTTP 422` with FastAPI's standard validation-error body when either field fails validation — a `name` that doesn't match the pattern, or `text` outside the 1–2000 character range. Returns `HTTP 500` if the template cannot be written to disk.
 
 ### Example
 
