@@ -1,0 +1,77 @@
+---
+title: "Extend a generation or regenerate a section (continuation & inpainting)"
+description: "Append new audio after a MusicGen clip, or regenerate just a section of it in place — both powered by EnCodec prefix conditioning, from the history panel or the player."
+---
+
+Two actions let you edit a MusicGen generation after the fact instead of starting over from a blank prompt:
+
+- **Extend…** appends new audio that continues where a clip leaves off.
+- **↻ Regenerate section** replaces a selected region inside a clip, conditioned on the audio before it and crossfaded back in at both edges.
+
+Both are available in the web UI's **History** panel and produce a **new** history entry — the original clip is never modified.
+
+<Warning>
+  **v1 scope.** Continuation and inpainting are only available for **MusicGen mono, 4-codebook variants**. Melody, style, and stereo variants are rejected — stereo's 8 codebooks can't be decoded by the shared EnCodec. Inpainting conditions on the **LEFT context only**: MusicGen is autoregressive, so there is no "future" audio for the region's right edge to condition on — the right edge is joined with a plain crossfade, not model conditioning. Stable Audio support is planned but not available yet.
+</Warning>
+
+## Extend a clip
+
+<Steps>
+  <Step title="Find a completed MusicGen generation">
+    Continuation only works on completed MusicGen jobs. The **Extend…** button does not appear for Stable Audio, MOSS-SoundEffect, or Lyria clips.
+  </Step>
+
+  <Step title='Click "Extend…"'>
+    On the clip's action bar in the **History** panel, click **Extend…**. A seconds input and a **Go** button appear inline.
+  </Step>
+
+  <Step title="Choose how many seconds to add">
+    Enter how many seconds of new audio to append (1–29). Each history card remembers its own value, so opening **Extend…** on a different clip does not reset or overwrite what you typed elsewhere.
+  </Step>
+
+  <Step title="Click Go">
+    The server encodes the tail of the source clip as conditioning context, generates the requested number of new seconds continuing from it, and stitches the result together with an equal-power crossfade. The new, longer clip appears as a fresh entry at the top of History — the original clip is untouched.
+  </Step>
+</Steps>
+
+## Regenerate a section
+
+<Steps>
+  <Step title="Select a region on the player">
+    On a completed MusicGen clip, drag across the waveform or spectrogram to select the region you want to redo.
+  </Step>
+
+  <Step title='Click "↻ Regenerate section"'>
+    The button appears next to the player controls once a selection exists. Click it to submit the regeneration.
+  </Step>
+
+  <Step title="Review the result">
+    The region is regenerated conditioned on the audio immediately **before** it, then crossfaded back into the original at both the start and end of the selection. Like **Extend…**, this produces a new history entry rather than overwriting the clip you started from.
+  </Step>
+</Steps>
+
+<Note>
+  A selection longer than **30 seconds** is rejected up front with an on-screen error before anything is submitted to the server — regenerate a shorter section at a time.
+</Note>
+
+## How the source resolves
+
+Both actions need the original audio to condition on. The web UI resolves it automatically, in order:
+
+1. **Live job** — if the source generation is still tracked by the server (jobs stay in memory for about 5 minutes after completion), the request references it directly by job ID. No upload needed.
+2. **Automatic re-upload** — once the source job has aged out of server memory, the web UI uploads the WAV it already kept locally via `POST /api/source-upload` and references the returned path instead.
+
+Either way this is transparent — you never have to think about which path was used.
+
+## Limits
+
+MusicGen's autoregressive decoder has a combined context-plus-new-audio ceiling of a little under **40 seconds** (39.94s, precisely — see the [API reference](/api/generation#continuation-inpaint-parameters-phase-10i) for the exact math). This is why:
+
+- **Extend…** caps its input at **29 seconds** — with the fixed 10-second context window it uses, that is the largest amount that reliably stays under the limit.
+- **↻ Regenerate section** uses a 10-second context window for most selections, but automatically shrinks it for selections approaching the 30-second regenerate cap, so the combined total never exceeds the model's limit.
+
+New audio is spliced back into the original using an **equal-power crossfade**, 60 milliseconds by default.
+
+<Tip>
+  Both actions are one more way to iterate on a generation without starting over: keep the parts you like, and only regenerate the parts you don't.
+</Tip>

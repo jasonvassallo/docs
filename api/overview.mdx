@@ -56,7 +56,8 @@ A single background worker processes one job at a time (MLX is GPU-bound on Appl
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/generate` | Submit a generation request — returns a job ID. Supports `output_mode`: `audio`, `midi`, or `both` |
+| `POST` | `/api/generate` | Submit a generation request — returns a job ID. Supports `output_mode`: `audio`, `midi`, or `both`; and `mode`: `generate`, `continue`, or `inpaint` (Phase 10i) |
+| `POST` | `/api/source-upload` | Upload a continuation/inpaint source audio file — returns a server-allocated `source_path` for `POST /api/generate` |
 | `GET` | `/api/status/{id}` | Poll job status (`queued` / `running` / `done` / `error`) with real-time `progress` (0.0–1.0) |
 | `GET` | `/api/audio/{id}` | Download generated audio (WAV, AIFF, or FLAC) |
 | `GET` | `/api/midi/{id}` | Download generated MIDI — available when `output_mode` is `midi` or `both` |
