@@ -66,7 +66,7 @@ mlx-audiogen-server \
   <Accordion title="AI prompt enhancement">
     When you install the `llm` extra, the UI gains an **Enhance** button. Click it to run your prompt through a local LLM model — the enhanced version appears in a preview pane where you can accept it, edit it, or keep your original prompt. No data leaves your machine.
 
-    A **theme dropdown** next to the Enhance button biases the rewrite toward a style — `cinematic`, `lo-fi`, `energetic`, `ambient`, `retro`, `orchestral`, `dark`, `uplifting`, `experimental`, or `minimal`. Leave it on the neutral default to keep the previous behavior. Themes only affect LLM-powered enhancement, not the template fallback.
+    A **theme dropdown** next to the Enhance button biases the rewrite toward a style — `cinematic`, `lo-fi`, `energetic`, `ambient`, `retro`, `orchestral`, `dark`, `uplifting`, `experimental`, or `minimal`. The dropdown defaults to **No theme** (the empty `theme` value described in the [enhance API](/api/prompts)), which means no style bias is applied — identical to the pre-theme behavior. Themes only affect LLM-powered enhancement, not the template fallback.
   </Accordion>
 
   <Accordion title="Prompt templates">
