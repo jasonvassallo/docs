@@ -37,7 +37,8 @@
               "guides/style-conditioning",
               "guides/stem-separation",
               "guides/arrange",
-              "guides/lora"
+              "guides/lora",
+              "guides/mobile-pwa"
             ]
           },
           {
