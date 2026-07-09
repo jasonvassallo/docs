@@ -1,0 +1,84 @@
+---
+title: "Install MLX AudioGen on your phone as a mobile app"
+description: "Add the web UI to your home screen as an installable PWA — with generation-complete notifications, offline prompt queuing, and a phone-optimized layout."
+---
+
+The MLX AudioGen web UI is an installable progressive web app (PWA). Add it to your phone's home screen and it opens full-screen like a native app — no browser chrome — while your Mac does all the generation work. You get local completion notifications, an offline mode that queues prompts until the server is back, and a layout built for one-handed use.
+
+## Install on your phone
+
+Your phone needs to reach the server over the network, so start the server with a non-localhost bind:
+
+```bash
+mlx-audiogen-server --weights-dir ./converted/musicgen-small --host 0.0.0.0
+```
+
+Then open the server URL in your phone's browser:
+
+- **On your local network** — `http://<your-mac-ip>:8420`
+- **Remote server** — your hosted URL (for example, behind a Cloudflare Tunnel with Cloudflare Access). Installation works behind Cloudflare Access, too — sign in once and add the app as usual.
+
+<Steps>
+  <Step title="iOS (Safari)">
+    Tap the **Share** button, then **Add to Home Screen**, then **Add**. The app appears on your home screen as **AudioGen**.
+  </Step>
+  <Step title="Android (Chrome)">
+    Tap the **Install** prompt when it appears, or open the browser menu and choose **Add to Home screen** / **Install app**.
+  </Step>
+  <Step title="Launch from the home screen">
+    The app opens standalone — full-screen, dark-themed, with no address bar. It behaves like any other app in your app switcher.
+  </Step>
+</Steps>
+
+<Note>
+  On iOS, notifications only work from the **installed** home-screen app (iOS 16.4 or later) — Safari tabs can't show web notifications. If you plan to use completion notifications, install the app first.
+</Note>
+
+## Completion notifications
+
+Generation can take a while on longer clips, so the app can notify you when a job finishes — even while you're in another app.
+
+1. Open **Settings** in the sidebar (or the phone drawer).
+2. Switch on **Notify when generation completes (tab in background)**.
+3. Your browser asks for notification permission the moment you flip the toggle — it is never requested on page load. Allow it.
+
+From then on, any generation that finishes **while the app is in the background** fires a local notification — **"Generation complete"** (or **"Generation failed"**) with your prompt text as the body. This covers single generations, batch-queue items, and MIDI-clip generations alike. If you're actively looking at the app, no notification fires — you can already see the result arrive in the history panel.
+
+<Note>
+  These are **local** notifications, produced on your device by the open app. There is no push service and no third-party server involved — nothing about your prompts leaves the connection between your phone and your own server. Because they're local, the app (or its home-screen instance) must be open in the background for them to appear.
+</Note>
+
+If you previously denied permission, the toggle shows a hint: notifications are blocked and must be re-allowed in your browser's site settings before the toggle can take effect. If you dismissed the permission prompt without deciding, toggle again to re-prompt.
+
+## Offline
+
+The app shell is cached on your device by a service worker, so the UI opens even with no connection — on the subway, in airplane mode, or when the server is asleep:
+
+- **History still works.** Generated audio lives in your device's browser storage (IndexedDB), so everything in your history panel plays offline.
+- **Prompts queue instead of failing.** When the server is unreachable, the Generate button changes to **Queue offline**. Tap it and your prompt — with all current parameters and any selected LoRA — is saved on the device. A counter below the button shows how many prompts are queued ("2 prompts queued — will run when the server reconnects").
+- **Reconnect runs everything automatically.** As soon as the app's heartbeat sees the server again, queued prompts drain into the batch queue and start generating — no manual step. If a batch run was itself interrupted by the disconnect, its leftover items resume automatically too.
+
+<Warning>
+  Generation always requires the server — the models run on your Mac's GPU, not on the phone. Offline mode lets you keep drafting and listening; it can't produce new audio until the server is reachable again. API responses are never cached, so you always see live server state once connected.
+</Warning>
+
+## Phone layout
+
+Below 768px of screen width the UI switches to a phone layout:
+
+- **Controls move behind a menu.** Tap the menu button in the top-left of the header to open a drawer containing everything from the desktop sidebar — the Generate, Suggest, Train, Library, Settings, Arrange, and Help tabs. Tap outside the drawer to dismiss it; the main area stays dedicated to your generation history.
+- **The transport bar compacts.** Desktop-only controls (master BPM, pitch mode, memory gauge, audio device selector) hide on phones, leaving connection status and generation progress.
+- **Touch targets grow.** Tab buttons and controls get taller hit areas for comfortable thumb use.
+
+<Note>
+  The **Arrange** tab is desktop-only. Opening it on a phone shows a notice — "Arrange is a desktop view" — because the multi-track timeline needs at least 768px of width. Generation, history, library, and settings all work fully on the phone; open Arrange on a larger screen to edit your timeline.
+</Note>
+
+## Updates
+
+When a new version of the web UI is released on the server, the app detects it in the background and shows a toast in the bottom-right corner: **"A new version is available"**, with **Update** and **Later** buttons.
+
+- Tap **Update** — the button switches to a disabled **Updating…** state while the new version activates, then the app reloads on the new release.
+- Tap **Later** to dismiss the toast for this session; the update applies automatically the next time you launch the app.
+
+No app-store round trip, no manual cache clearing — updates ship the moment your server does.
