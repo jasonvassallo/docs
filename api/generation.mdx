@@ -161,6 +161,72 @@ These parameters apply when `model` is `"moss_sfx"`. They are ignored by other m
   Default: `null`
 </ParamField>
 
+#### Continuation & inpaint parameters (Phase 10i)
+
+<Info>
+  These fields extend an **existing** generation instead of starting a fresh one: `mode: "continue"` appends new audio after a source clip; `mode: "inpaint"` regenerates a region inside it, conditioned on the audio before that region and crossfaded back in at both edges. See the [Continue & inpaint guide](/guides/continue-and-inpaint) for the full walkthrough, the two web UI entry points, and its v1 scope.
+</Info>
+
+<ParamField body="mode" type="string">
+  Generation mode. Must match `^(generate|continue|inpaint)$`.
+
+  - `"generate"` — a fresh, independent generation
+  - `"continue"` — append `seconds` of new audio that follows the source
+  - `"inpaint"` — regenerate `region_start`..`region_end` inside the source, conditioned on the LEFT context only (MusicGen is autoregressive — there is no "future" audio to condition the right edge on)
+
+  Default: `"generate"`
+
+  <Warning>
+    `"continue"`/`"inpaint"` are only supported for `model: "musicgen"`, and only for **plain mono, 4-codebook variants** — melody, style, and stereo variants are rejected (the shared 4-quantizer EnCodec cannot decode stereo's 8 codebooks). They also cannot be combined with `melody_path`, `style_audio_path`, or `reference_audio_path`.
+  </Warning>
+</ParamField>
+
+<ParamField body="source_job_id" type="string | null">
+  The 8-character job ID of the source generation to continue/inpaint, while that job is still in server memory (jobs are cleaned up ~5 minutes after completion). Must match `^[a-f0-9]{8}$`. Provide exactly one of `source_job_id` or `source_path` when `mode` is `"continue"` or `"inpaint"`.
+
+  Default: `null`
+</ParamField>
+
+<ParamField body="source_path" type="string | null">
+  A server-allocated path returned by [`POST /api/source-upload`](#post-apisource-upload), used once the source job has already been cleaned up. Maximum 1024 characters.
+
+  Default: `null`
+</ParamField>
+
+<ParamField body="context_seconds" type="float">
+  Seconds of the source's tail used as conditioning context. Must be between `1.0` and `20.0`.
+
+  Default: `10.0`
+
+  <Note>
+    MusicGen's autoregressive decoder caps `context_seconds + seconds` (continue) or `context_seconds + (region_end - region_start)` (inpaint) at **39.94 seconds** — its 2000-position limit minus 3 for the 4-codebook delay pattern. A request over this limit fails validation with `HTTP 422`.
+  </Note>
+</ParamField>
+
+<ParamField body="region_start" type="float | null">
+  Start of the region to regenerate, in seconds from the start of the source (`mode: "inpaint"` only). Must be between `0.0` and `300.0`, and less than `region_end`.
+
+  Default: `null`
+</ParamField>
+
+<ParamField body="region_end" type="float | null">
+  End of the region to regenerate, in seconds (`mode: "inpaint"` only). Must be between `0.0` and `300.0`. The region (`region_end - region_start`) cannot exceed `30` seconds.
+
+  Default: `null`
+</ParamField>
+
+<ParamField body="crossfade_ms" type="float">
+  Length of the equal-power crossfade used to splice new audio back into the source, in milliseconds. Must be between `10.0` and `500.0`.
+
+  Default: `60.0`
+</ParamField>
+
+<ParamField body="extension_only" type="boolean">
+  When `mode` is `"continue"`, return only the newly generated audio instead of the full source-plus-continuation result. Requires `mode: "continue"` — invalid combined with `"generate"` or `"inpaint"`.
+
+  Default: `false`
+</ParamField>
+
 ### Response
 
 <ResponseField name="id" type="string">
@@ -234,6 +300,41 @@ curl -X POST http://localhost:8420/api/generate \
     "top_p": 0.6,
     "repetition_penalty": 1.2
   }'
+```
+
+---
+
+## POST /api/source-upload
+
+Upload an audio file to use as a continuation/inpaint source once the original generation job has already been cleaned up (completed jobs are kept in server memory for only ~5 minutes). Returns a server-allocated path — pass it back as `source_path` on `POST /api/generate`.
+
+<Info>
+  You usually don't need this: while the source job is still in memory, pass `source_job_id` instead and skip the upload entirely. The web UI's **Extend…** and **↻ Regenerate section** actions try `source_job_id` first and only upload automatically as a fallback.
+</Info>
+
+### Request
+
+Multipart form upload with a single `file` field. Allowed extensions: `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac`, `.m4a`, `.aiff`, `.aif`. Maximum size 128 MB.
+
+### Response
+
+<ResponseField name="path" type="string">
+  Server-allocated temporary file path. Pass this back as `source_path` on `POST /api/generate`. The upload is deleted automatically once the generation job that consumes it finishes; orphaned uploads (rejected request, crash) are swept on server startup.
+</ResponseField>
+
+Returns `HTTP 400` for an unsupported file extension or an empty upload. Returns `HTTP 413` if the file exceeds 128 MB.
+
+### Example
+
+```bash curl
+curl -X POST http://localhost:8420/api/source-upload \
+  -F "file=@source.wav"
+```
+
+```json Response
+{
+  "path": "/Users/you/.mlx-audiogen/source_tmp/tmpabc123.wav"
+}
 ```
 
 ---
@@ -334,6 +435,12 @@ Poll the status of a generation job. Call this repeatedly until `status` is `"do
 
 <ResponseField name="starred" type="boolean">
   Whether the job has been starred as a favorite.
+</ResponseField>
+
+<ResponseField name="mode" type="string">
+  Generation mode used for this job: `"generate"`, `"continue"`, or `"inpaint"` (Phase 10i). See [Continuation & inpaint parameters](#continuation-inpaint-parameters-phase-10i).
+
+  Default: `"generate"`
 </ResponseField>
 
 <ResponseField name="detected_key" type="string | null">

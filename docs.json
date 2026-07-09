@@ -35,6 +35,7 @@
               "guides/stable-audio",
               "guides/melody-conditioning",
               "guides/style-conditioning",
+              "guides/continue-and-inpaint",
               "guides/stem-separation",
               "guides/arrange",
               "guides/lora",
