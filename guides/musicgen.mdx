@@ -121,6 +121,21 @@ Stereo variants are available in small, medium, and large sizes.
   </Accordion>
 </AccordionGroup>
 
+## Streaming preview
+
+The web UI can play a progressive audio preview while a MusicGen generation is still running, instead of waiting for the whole clip to finish. Turn it on with the streaming checkbox in the Generate tab's parameter panel.
+
+<Note>
+  Streaming preview is available in the web UI only — it isn't a CLI flag. If you're driving MusicGen through the HTTP API directly, see [`stream` on `POST /api/generate`](/api/generation#post-apigenerate) and [`GET /api/stream/{id}`](/api/generation#get-apistreamid).
+</Note>
+
+What to expect:
+
+- **MusicGen only.** The checkbox only appears — and only has an effect — when `Model` is set to MusicGen and you're doing a fresh generation (not a continuation or inpaint).
+- **Audio starts early.** Playback typically begins 1–2 seconds after you hit Generate, well before the job reports `done`.
+- **Occasional rebuffer gaps.** If generation runs slower than realtime on your Mac, playback briefly pauses and catches up rather than skipping ahead — you may hear small gaps rather than dropped audio.
+- **The final result is unaffected.** History, the downloadable WAV, MIDI export, stem separation, detected key, and quality score are exactly the same whether or not you had streaming preview turned on. A live card appears in the history panel while the job runs (with mute/stop controls) and disappears once the final WAV lands.
+
 ## Next steps
 
 <CardGroup cols={2}>

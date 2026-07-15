@@ -103,6 +103,14 @@ Submit a generation request. The server enqueues the job and returns immediately
   Default: `5.0`
 </ParamField>
 
+<ParamField body="stream" type="boolean">
+  Opt in to a progressive PCM preview of the audio while it generates. Only valid for `model: "musicgen"` with `mode: "generate"` (the default mode) — combining `stream: true` with `mode: "continue"`, `mode: "inpaint"`, or any other model fails validation with `HTTP 422`.
+
+  When `true`, connect to [`GET /api/stream/{id}`](#get-apistreamid) after submitting the job to hear audio as it's produced, well before the final WAV is ready. Streaming has no effect on the final result: the WAV, MIDI, detected key, and quality score are identical whether or not you ever open a stream connection, and whether or not the stream reader disconnects partway through.
+
+  Default: `false`
+</ParamField>
+
 #### Stable Audio parameters
 
 <ParamField body="steps" type="integer">
@@ -603,6 +611,78 @@ Returns `HTTP 404` if no MIDI data exists for the job (e.g., `output_mode` was `
 
 ```bash
 curl -o output.mid http://localhost:8420/api/midi/a3f1c2d4
+```
+
+---
+
+## GET /api/stream/\{id\}
+
+Stream a progressive PCM preview of an in-flight MusicGen generation. Only available when the original `POST /api/generate` request had `stream: true` and `mode: "generate"` — otherwise the job never has a stream to serve.
+
+<Info>
+  This endpoint exists purely for **preview**. The final result is completely unaffected by streaming: whether you connect, when you connect, or whether your connection drops midway, the job still produces the same WAV, MIDI, detected key, and quality score. A slow or disconnected reader never blocks or fails generation.
+</Info>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Job ID from `POST /api/generate`. The originating request must have had `stream: true`.
+</ParamField>
+
+### Response
+
+A `200` response streams binary frames as chunked HTTP, `Content-Type: application/octet-stream`. Each frame has the same three-part layout:
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `u8` | `1` = header, `2` = PCM chunk, `3` = end |
+| `len` | `u32` (little-endian) | Byte length of `payload` |
+| `payload` | bytes | Frame body — see below |
+
+| Type | Payload |
+|---|---|
+| `1` (header) | UTF-8 JSON: `{"format": "s16le", "sample_rate": <int>, "channels": <int>}` — sent once, first |
+| `2` (PCM chunk) | Raw signed 16-bit little-endian PCM samples, interleaved by channel |
+| `3` (end) | UTF-8 JSON: `{"done": <bool>, "error": <string \| null>, "truncated": <bool>}` — sent once, last |
+
+The stream always starts with exactly one header frame, is followed by zero or more PCM chunk frames as audio becomes available, and ends with exactly one end frame. `truncated: true` in the end frame means the preview stopped early (for example, the replay buffer's 64 MB cap was reached) — it does **not** mean the final generation was cut short.
+
+Only one client may read a job's stream at a time — a second concurrent connection gets `HTTP 409`. Reconnecting (after a disconnect, or as a fresh client) always replays from frame 0, so a late-joining client sees the full preview from the start, not just what's left. If you request a stream that doesn't exist (unknown job, or `stream` wasn't set on the original request), you get `HTTP 404`.
+
+This endpoint is exempt from the generation rate limit and uses the general rate-limit bucket instead.
+
+### Example
+
+```bash curl
+curl -N http://localhost:8420/api/stream/a3f1c2d4 -o preview.raw
+```
+
+```python Python
+import json
+import struct
+
+import requests
+
+def read_stream(job_id: str):
+    url = f"http://localhost:8420/api/stream/{job_id}"
+    with requests.get(url, stream=True) as resp:
+        resp.raise_for_status()
+        buf = resp.raw
+        while True:
+            header = buf.read(5)
+            if not header:
+                break
+            frame_type, length = struct.unpack("<BI", header)
+            payload = buf.read(length)
+            if frame_type == 1:
+                print("header:", json.loads(payload))
+            elif frame_type == 2:
+                pass  # payload is raw s16le PCM — write/play it
+            elif frame_type == 3:
+                print("end:", json.loads(payload))
+                break
+
+read_stream("a3f1c2d4")
 ```
 
 ---
