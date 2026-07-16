@@ -92,7 +92,11 @@ Submit a generation request. The server enqueues the job and returns immediately
 </ParamField>
 
 <ParamField body="style_audio_path" type="string | null">
-  Absolute path to a WAV file used for style conditioning (style model variant only). MERT extracts timbre features from the reference to guide generation. Maximum 1024 characters. Must not contain `..`.
+  Path to an audio file used for style conditioning — either an absolute path on the server's filesystem or a server-allocated path returned by [`POST /api/style-upload`](#post-apistyle-upload). MERT extracts timbre features from the reference to guide generation. Maximum 1024 characters. Must not contain `..`.
+
+  When you pass `style_audio_path`, the server automatically resolves a **style-capable** MusicGen variant (`musicgen-style`) — you don't select it yourself. If no style-capable variant has been converted and made available, the request fails with `HTTP 422` and a message explaining how to convert one; style conditioning is never silently dropped.
+
+  Style conditioning cannot be combined with `melody_path`, or with `mode: "continue"` / `mode: "inpaint"` — those combinations fail validation with `HTTP 422`. It **does** work together with the [streaming preview](#get-apistreamid) (`stream: true`).
 
   Default: `null`
 </ParamField>
@@ -342,6 +346,41 @@ curl -X POST http://localhost:8420/api/source-upload \
 ```json Response
 {
   "path": "/Users/you/.mlx-audiogen/source_tmp/tmpabc123.wav"
+}
+```
+
+---
+
+## POST /api/style-upload
+
+Upload a style reference audio file for style-conditioned generation. Returns a server-allocated path — pass it back as `style_audio_path` on `POST /api/generate` (with an optional `style_coef`, default `5.0`).
+
+<Info>
+  This is how the web UI's **Style Reference** section works under the hood: it uploads your reference here, then submits the generation with the returned path. See the [style conditioning guide](/guides/style-conditioning#from-the-web-ui) for the web UI flow.
+</Info>
+
+### Request
+
+Multipart form upload with a single `file` field. Allowed extensions: `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac`, `.m4a`, `.aiff`, `.aif`. Maximum size 64 MB.
+
+### Response
+
+<ResponseField name="path" type="string">
+  Server-allocated temporary file path. Pass this back as `style_audio_path` on `POST /api/generate`. The upload is deleted automatically when the generation job that consumes it completes; orphaned uploads are swept on server startup (10-minute TTL).
+</ResponseField>
+
+Returns `HTTP 400` for an unsupported file extension. Returns `HTTP 413` if the file exceeds 64 MB.
+
+### Example
+
+```bash curl
+curl -X POST http://localhost:8420/api/style-upload \
+  -F "file=@reference.wav"
+```
+
+```json Response
+{
+  "path": "/Users/you/.mlx-audiogen/style_tmp/tmpdef456.wav"
 }
 ```
 

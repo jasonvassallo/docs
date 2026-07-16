@@ -52,6 +52,32 @@ This requires the `facebook/musicgen-style` weights. Style variants also work wi
   </Step>
 </Steps>
 
+## From the web UI
+
+You can run the same workflow entirely from the browser — no CLI flags needed. When a style-capable model is available on your server, a **Style Reference** section appears in the Generate tab's parameter panel:
+
+<Steps>
+  <Step title="Add a style reference">
+    Click the Style Reference section to pick an audio file, or drag and drop one onto it. Supported formats: `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac`, `.m4a`, `.aiff`, `.aif` (up to 64 MB).
+  </Step>
+
+  <Step title="Set the style coefficient">
+    The **Style Coef** slider lives inside the Style Reference section (default `5.0`). It only appears when style conditioning is actually usable, so you'll never tune a slider that has no effect.
+  </Step>
+
+  <Step title="Generate">
+    Write your text prompt and generate as usual. The server automatically resolves a style-capable variant (`musicgen-style`) for the request — you don't have to select it yourself. If no style-capable variant has been converted, the request fails with a clear error explaining how to convert one; your style reference is never silently ignored.
+  </Step>
+</Steps>
+
+Under the hood, the UI uploads your reference to [`POST /api/style-upload`](/api/generation#post-apistyle-upload) and passes the returned path as `style_audio_path` on the generation request.
+
+A few things to know:
+
+- Style conditioning **cannot** be combined with melody conditioning or with the **Extend…** / **Regenerate section** (continue/inpaint) actions — the server rejects those combinations rather than dropping your reference.
+- Style conditioning **does** work together with the [streaming preview](/api/generation#get-apistreamid), so you can hear the styled output as it generates.
+- If you generate while **offline** with a style reference selected, the request is not queued — an error explains why. The offline prompt queue ignores style references, and the UI warns you about it.
+
 ## Parameters
 
 <ParamField path="--style-audio" type="string">
