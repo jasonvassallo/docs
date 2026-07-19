@@ -328,6 +328,10 @@ Upload an audio file to use as a continuation/inpaint source once the original g
 
 Multipart form upload with a single `file` field. Allowed extensions: `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac`, `.m4a`, `.aiff`, `.aif`. Maximum size 128 MB.
 
+<Note>
+  **Compressed uploads are decoded on macOS.** Compressed formats — `.mp3`, `.aac`, and `.m4a` (AAC or ALAC) — are transcoded to PCM on the server with macOS's built-in `afconvert` before conditioning; `.wav`, `.flac`, `.ogg`, and `.aiff`/`.aif` are read directly. Decoding therefore requires macOS. A file that can't be decoded — an unsupported codec, or a DRM-protected purchase — surfaces a generic upload error.
+</Note>
+
 ### Response
 
 <ResponseField name="path" type="string">
@@ -362,6 +366,10 @@ Upload a style reference audio file for style-conditioned generation. It returns
 ### Request
 
 Multipart form upload with a single `file` field. Allowed extensions: `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac`, `.m4a`, `.aiff`, `.aif`. Maximum size 64 MB.
+
+<Note>
+  **Compressed uploads are decoded on macOS.** Compressed formats — `.mp3`, `.aac`, and `.m4a` (AAC or ALAC) — are transcoded to PCM on the server with macOS's built-in `afconvert` before conditioning; `.wav`, `.flac`, `.ogg`, and `.aiff`/`.aif` are read directly. Decoding therefore requires macOS. A file that can't be decoded — an unsupported codec, or a DRM-protected purchase — surfaces a generic upload error.
+</Note>
 
 ### Response
 

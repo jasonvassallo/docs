@@ -1,0 +1,269 @@
+---
+title: "Find acoustically similar tracks with the library similarity API"
+description: "Index a scanned music library into acoustic descriptors, then query nearest-neighbour matches by groove and texture — three HTTP endpoints powering the Find Similar feature."
+---
+
+The library similarity API turns a scanned music library into a set of compact acoustic fingerprints, then lets you ask "what else sounds like this?". You run a **one-time analysis** over a source's locally-available tracks, poll it to completion, then query any analyzed track for its nearest acoustic neighbours — ranked by how close they are in harmony, texture, and rhythmic feel.
+
+Analysis runs on a background CPU worker and never blocks audio generation. Each track is analyzed **once** into an 18-value acoustic descriptor that is cached in a local database, so repeat queries never re-decode audio. See the [Find Similar guide](/guides/find-similar) for the end-to-end web UI walkthrough and a fuller explanation of how similarity is measured.
+
+<Info>
+  These endpoints operate on a library **source** you have already added and scanned via the [library source endpoints](/api/overview#endpoint-index). Add a source, scan it, then analyze it — in that order.
+</Info>
+
+---
+
+## POST /api/library/analyze
+
+Start a background acoustic-analysis sweep of a scanned source's locally-available tracks. Only one sweep runs at a time across the whole server — indexing is globally serialized — so a request made while another sweep is in flight returns `status: "skipped"` rather than starting a second one.
+
+### Request body
+
+<ParamField body="source_id" type="string" required>
+  The id of a library source that has already been scanned. Unknown sources return `HTTP 404`; a source that exists but has not been scanned yet returns `HTTP 400` (scan it first).
+</ParamField>
+
+### Response
+
+<ResponseField name="source_id" type="string">
+  The source being analyzed.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  `"started"` when a new sweep began, or `"skipped"` when a sweep is already running (yours was not started — indexing is one-at-a-time).
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Number of tracks queued for analysis in this sweep.
+</ResponseField>
+
+Returns `HTTP 404` if the source id is unknown, or `HTTP 400` if the source has not been scanned yet.
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST http://localhost:8420/api/library/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"source_id": "lib_a1b2c3"}'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "http://localhost:8420/api/library/analyze",
+    json={"source_id": "lib_a1b2c3"},
+)
+resp.raise_for_status()
+print(resp.json())
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "source_id": "lib_a1b2c3",
+  "status": "started",
+  "total": 428
+}
+```
+
+---
+
+## GET /api/library/analyze/status/\{source_id\}
+
+Poll the progress of a source's analysis sweep. Call this repeatedly until `phase` reaches a terminal value (`done`, `cancelled`, or `error`).
+
+### Path parameters
+
+<ParamField path="source_id" type="string" required>
+  The id of the source being analyzed.
+</ParamField>
+
+### Response
+
+When a sweep is running or has finished, the response reports live counts:
+
+<ResponseField name="status" type="string">
+  Overall state of the sweep. `"idle"` is returned (with no other fields) when no sweep has ever run for this source.
+</ResponseField>
+
+<ResponseField name="phase" type="string">
+  Current phase: `"scanning"` (enumerating local files) → `"analyzing"` (extracting descriptors) → a terminal `"done"`, `"cancelled"`, or `"error"`.
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total tracks in this sweep.
+</ResponseField>
+
+<ResponseField name="completed" type="integer">
+  Tracks analyzed so far.
+</ResponseField>
+
+<ResponseField name="errors" type="integer">
+  Tracks that failed to analyze.
+</ResponseField>
+
+<ResponseField name="skipped" type="integer">
+  Tracks skipped because they have no local file to read (for example, streaming-only or iCloud-evicted tracks).
+</ResponseField>
+
+<ResponseField name="current" type="string | null">
+  A label for the track currently being analyzed, for display in a progress row.
+</ResponseField>
+
+### Example
+
+```bash curl
+curl http://localhost:8420/api/library/analyze/status/lib_a1b2c3
+```
+
+```json Response
+{
+  "status": "running",
+  "phase": "analyzing",
+  "total": 428,
+  "completed": 191,
+  "errors": 2,
+  "skipped": 37,
+  "current": "Aphex Twin — Rhubarb"
+}
+```
+
+When nothing has run yet:
+
+```json Idle response
+{
+  "status": "idle"
+}
+```
+
+---
+
+## GET /api/library/similar/\{track_id\}
+
+Return the nearest acoustic matches to a track from the same source, ranked most-similar first. Only tracks that have already been analyzed are compared, and only their **cached descriptors** are read — no audio is decoded per query, so results come back instantly.
+
+### Path parameters
+
+<ParamField path="track_id" type="string" required>
+  The id of the query track. It must have been analyzed already; if it has not, the endpoint returns `HTTP 404` (run [`POST /api/library/analyze`](#post-apilibraryanalyze) on its source first).
+</ParamField>
+
+### Query parameters
+
+<ParamField query="source_id" type="string" required>
+  The source to search within. **Required** — matches are only drawn from tracks in this source.
+</ParamField>
+
+<ParamField query="limit" type="integer">
+  Maximum number of matches to return. Must be between `1` and `100`.
+
+  Default: `20`
+</ParamField>
+
+### Response
+
+<ResponseField name="track_id" type="string">
+  The query track id, echoed back.
+</ResponseField>
+
+<ResponseField name="count" type="integer">
+  Number of matches in `results`.
+</ResponseField>
+
+<ResponseField name="results" type="object[]">
+  Matches sorted by `score` **descending**. The query track itself is excluded. Each entry has:
+
+  <Expandable title="match fields">
+    <ResponseField name="track_id" type="string">
+      Id of the matched track.
+    </ResponseField>
+    <ResponseField name="title" type="string | null">
+      Track title.
+    </ResponseField>
+    <ResponseField name="artist" type="string | null">
+      Track artist.
+    </ResponseField>
+    <ResponseField name="album" type="string | null">
+      Track album.
+    </ResponseField>
+    <ResponseField name="bpm" type="float | null">
+      Track tempo, if known from the library metadata.
+    </ResponseField>
+    <ResponseField name="key" type="string | null">
+      Track musical key, if known from the library metadata.
+    </ResponseField>
+    <ResponseField name="score" type="float">
+      Similarity to the query track, from `0.0` (unrelated) to `1.0` (identical acoustic fingerprint). This is what the web UI renders as a match-percentage bar.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+Returns `HTTP 404` if the query track has not been analyzed yet.
+
+### Example
+
+<CodeGroup>
+
+```bash curl
+curl "http://localhost:8420/api/library/similar/trk_9f8e7d?source_id=lib_a1b2c3&limit=10"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "http://localhost:8420/api/library/similar/trk_9f8e7d",
+    params={"source_id": "lib_a1b2c3", "limit": 10},
+)
+resp.raise_for_status()
+for match in resp.json()["results"]:
+    print(f'{match["score"]:.0%}  {match["artist"]} — {match["title"]}')
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "track_id": "trk_9f8e7d",
+  "count": 2,
+  "results": [
+    {
+      "track_id": "trk_1122aa",
+      "title": "Xtal",
+      "artist": "Aphex Twin",
+      "album": "Selected Ambient Works 85–92",
+      "bpm": 110.0,
+      "key": "F# minor",
+      "score": 0.91
+    },
+    {
+      "track_id": "trk_3344bb",
+      "title": "Alberto Balsalm",
+      "artist": "Aphex Twin",
+      "album": "…I Care Because You Do",
+      "bpm": 116.0,
+      "key": "A minor",
+      "score": 0.84
+    }
+  ]
+}
+```
+
+---
+
+## How similarity is measured
+
+Each locally-available track is analyzed once into an **18-value acoustic descriptor**:
+
+| Component | Values | Captures |
+|---|---|---|
+| Chroma | 12 | Harmony / key |
+| Spectral centroid | 1 | Brightness |
+| Band-energy ratios | 4 | Sub / bass / mid / high balance |
+| Onset rate | 1 | Rhythmic density |
+
+The similarity score blends those components with fixed weights — **chroma 0.30, onset 0.30, bands 0.25, centroid 0.15** — so matches track a song's *groove and texture*, not just its key. Descriptors are cached in a local database keyed on file identity, and a track is only re-analyzed when its file changes. Tracks with no local file (streaming or iCloud-evicted) are skipped and reported in the sweep's `skipped` count.
