@@ -33,6 +33,14 @@ Returns an array of model objects.
   Whether this model runs in the cloud instead of on-device. `true` for the opt-in Lyria models on Google Vertex AI; `false` (the default) for all local pipelines. The web UI uses this to badge cloud models and show a cloud-egress notice.
 </ResponseField>
 
+<ResponseField name="is_style" type="boolean">
+  Whether this model supports **style conditioning** — accepting a reference audio file via `style_audio_path` on `POST /api/generate`. `true` for the `musicgen-style` variant. The web UI shows the **Style Reference** section in the Generate tab whenever *any* listed model has `is_style: true`. You don't have to select the style variant yourself, because the server resolves it automatically when a generation request includes `style_audio_path`.
+</ResponseField>
+
+<ResponseField name="is_melody" type="boolean">
+  Whether this model supports **melody conditioning** — accepting a melody audio file via `melody_path` on `POST /api/generate`. `true` for the MusicGen melody variants.
+</ResponseField>
+
 ### Example
 
 <CodeGroup>
@@ -58,19 +66,33 @@ for m in models:
     "name": "musicgen-small",
     "model_type": "musicgen",
     "is_loaded": true,
-    "is_cloud": false
+    "is_cloud": false,
+    "is_style": false,
+    "is_melody": false
+  },
+  {
+    "name": "musicgen-style",
+    "model_type": "musicgen",
+    "is_loaded": false,
+    "is_cloud": false,
+    "is_style": true,
+    "is_melody": false
   },
   {
     "name": "stable-audio",
     "model_type": "stable_audio",
     "is_loaded": false,
-    "is_cloud": false
+    "is_cloud": false,
+    "is_style": false,
+    "is_melody": false
   },
   {
     "name": "lyria-002",
     "model_type": "lyria-002",
     "is_loaded": false,
-    "is_cloud": true
+    "is_cloud": true,
+    "is_style": false,
+    "is_melody": false
   }
 ]
 ```
