@@ -34,7 +34,7 @@ Returns an array of model objects.
 </ResponseField>
 
 <ResponseField name="is_style" type="boolean">
-  Whether this model supports **style conditioning** — accepting a reference audio file via `style_audio_path` on `POST /api/generate`. `true` for the `musicgen-style` variant. The web UI shows the **Style Reference** section in the Generate tab whenever *any* listed model has `is_style: true` — you don't have to select the style variant yourself, because the server resolves it automatically when a generation request includes `style_audio_path`.
+  Whether this model supports **style conditioning** — accepting a reference audio file via `style_audio_path` on `POST /api/generate`. `true` for the `musicgen-style` variant. The web UI shows the **Style Reference** section in the Generate tab whenever *any* listed model has `is_style: true`. You don't have to select the style variant yourself, because the server resolves it automatically when a generation request includes `style_audio_path`.
 </ResponseField>
 
 <ResponseField name="is_melody" type="boolean">
