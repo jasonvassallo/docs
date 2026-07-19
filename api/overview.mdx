@@ -82,6 +82,9 @@ A single background worker processes one job at a time (MLX is GPU-bound on Appl
 | `GET` | `/api/memory` | Get prompt memory — generation history and style profile |
 | `GET` | `/api/settings` | Get current server settings |
 | `POST` | `/api/settings` | Update server settings at runtime |
+| `POST` | `/api/library/analyze` | Start a background acoustic-analysis sweep of a scanned source (for Find Similar) |
+| `GET` | `/api/library/analyze/status/{source_id}` | Poll the progress of a source's analysis sweep |
+| `GET` | `/api/library/similar/{track_id}` | Find acoustically similar tracks to a given track (`source_id` required) |
 
 ## End-to-end example
 

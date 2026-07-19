@@ -1,0 +1,81 @@
+---
+title: "Find similar tracks in your library and generate from a match"
+description: "Index a scanned music library for acoustic similarity, find tracks that share a song's groove and texture, and turn a match into a generation seed — all from the Library tab."
+---
+
+Once you have scanned a music library into MLX AudioGen, you can ask it to find the tracks that *sound like* one you already have — not just tracks in the same key, but ones that share its groove, brightness, and rhythmic feel. This guide walks through the whole loop: index a source once, find similar tracks, then use a match as the seed for a new generation.
+
+Similarity works entirely on-device. Each track is analyzed into a small acoustic fingerprint on a background CPU worker, so indexing never blocks audio generation, and matching reads only the cached fingerprints — no audio is re-decoded when you search.
+
+<Info>
+  You need a library **source** that is already added and scanned. If you haven't set one up yet, add an Apple Music or rekordbox XML export in the **Library** tab first, then scan it. Everything below happens in that same tab.
+</Info>
+
+## Index a source for similarity
+
+Analysis is a one-time step per source (tracks are re-analyzed only when their files change).
+
+<Steps>
+  <Step title="Open the Library tab">
+    Select the **Library** tab in the sidebar and pick the source you want to search within.
+  </Step>
+
+  <Step title='Click "Index for Similarity"'>
+    Each source has an **Index for Similarity** action. Click it to start a background analysis sweep of the source's locally-available tracks.
+  </Step>
+
+  <Step title="Watch the progress row">
+    A progress row shows `completed / total` as the sweep runs. You can keep working — generation and playback are unaffected while indexing runs on its own CPU worker.
+
+    Tracks with no local file (streaming-only or iCloud-evicted) can't be read, so they're skipped and counted separately. That's expected — only tracks with audio on disk get a fingerprint.
+  </Step>
+</Steps>
+
+<Note>
+  Only one source indexes at a time across the whole server. If you kick off a second sweep while one is running, it is not started — wait for the first to finish, then index the next source.
+</Note>
+
+## Find tracks that sound alike
+
+Once a source is indexed, every analyzed track gains a **Find Similar** button.
+
+<Steps>
+  <Step title="Click Find Similar on any analyzed track">
+    The button appears on analyzed tracks in the source's track list. Click it to query that track's nearest acoustic neighbours.
+  </Step>
+
+  <Step title="Read the ranked results">
+    A ranked list appears, most-similar first. Each result shows the track's title, artist, and a **match-percentage bar** — how close it is to your query track across harmony, texture, and rhythm. The query track itself is never listed.
+  </Step>
+</Steps>
+
+## Generate from a match
+
+Each result carries a **Generate Like This** action, so a track you like becomes the starting point for something new.
+
+<Steps>
+  <Step title='Click "Generate Like This" on a match'>
+    This seeds the Generate tab from the matched track's metadata, so you can shape a prompt around a song whose feel you already know you want.
+  </Step>
+
+  <Step title="Adjust and generate">
+    Tweak the prompt and parameters as usual, then generate. From here it's an ordinary generation — see the [MusicGen guide](/guides/musicgen) for the generation controls.
+  </Step>
+</Steps>
+
+## How similarity is measured
+
+Each locally-available track is analyzed once into an **18-value acoustic descriptor**:
+
+- **12-bin chroma** — harmony and key
+- **spectral centroid** — brightness
+- **four band-energy ratios** — the sub / bass / mid / high balance
+- **onset rate** — rhythmic density
+
+The similarity score blends these with fixed weights — **chroma 0.30, onset 0.30, bands 0.25, centroid 0.15**. Because rhythm and texture carry as much weight as harmony, matches follow a track's *groove and feel* rather than just landing on tracks in the same key.
+
+Descriptors are cached in a local database keyed on file identity, so a track is analyzed only once and re-analyzed only if its file changes. That's what makes searching instant — matching compares cached fingerprints and never decodes audio again.
+
+<Tip>
+  Prefer to drive this from your own scripts? The same capability is exposed over HTTP — see the [library similarity API](/api/library) for `POST /api/library/analyze`, its status endpoint, and `GET /api/library/similar/{track_id}`.
+</Tip>

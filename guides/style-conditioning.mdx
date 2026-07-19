@@ -59,6 +59,10 @@ You can run the same workflow entirely from the browser. No CLI flags are needed
 <Steps>
   <Step title="Add a style reference">
     Click the Style Reference section to pick an audio file, or drag and drop one onto it. Supported formats: `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac`, `.m4a`, `.aiff`, `.aif` (up to 64 MB).
+
+    <Note>
+      Compressed files — `.mp3`, `.aac`, and `.m4a` (AAC or ALAC) — are decoded to PCM on the server using macOS's built-in `afconvert`, so a reference straight from your music library works without converting it first. Decoding requires macOS; a file that can't be decoded (an unsupported codec or a DRM-protected purchase) surfaces a generic error.
+    </Note>
   </Step>
 
   <Step title="Set the style coefficient">

@@ -37,6 +37,7 @@
               "guides/style-conditioning",
               "guides/continue-and-inpaint",
               "guides/stem-separation",
+              "guides/find-similar",
               "guides/arrange",
               "guides/lora",
               "guides/mobile-pwa"
@@ -71,7 +72,8 @@
               "api/models",
               "api/prompts",
               "api/presets",
-              "api/stems"
+              "api/stems",
+              "api/library"
             ]
           }
         ]
