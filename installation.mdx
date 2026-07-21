@@ -94,7 +94,7 @@ The base install includes the CLI and all audio generation functionality. Extras
 |---|---|---|
 | (base) | CLI, model generation, model auto-download | Always included |
 | `[server]` | HTTP server, React web UI, async job queue | Web UI, DAW plugin, or API access |
-| `[llm]` | AI prompt enhancement via a local LLM | Prompt suggestions in the web UI |
+| `[llm]` | AI prompt enhancement via a local LLM — bundles `mlx-lm` for text models plus an `mlx-vlm` fallback for vision-language Qwen models | Prompt suggestions in the web UI |
 | `[convert]` | Convert PyTorch weights to MLX format | Only if converting models yourself |
 | `[cloud]` | Google Vertex AI Lyria cloud generation (`google-genai` + `google-auth`) | Only if generating with the cloud Lyria model |
 
