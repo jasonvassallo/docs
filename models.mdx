@@ -1,6 +1,6 @@
 ---
 title: "Supported models: MusicGen, Stable Audio, MOSS-SoundEffect, Lyria, and Demucs"
-description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, MOSS-SoundEffect, the cloud Lyria models, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
+description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, MOSS-SoundEffect, the cloud Lyria models, and Demucs — with specs, HuggingFace repo IDs, licensing, and guidance on which to choose."
 ---
 
 MLX AudioGen runs four on-device model families plus one opt-in cloud model. **On-device:** MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-sound-effect generation, and Demucs v4 for stem separation — all running locally on your Mac's Metal GPU. **Cloud:** Lyria, Google's hosted music model on Vertex AI, is the first non-local model and is off by default. Each on-device family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for most on-device variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use. The stereo-melody MusicGen variants are the exception — no converted weights are published for them, so convert those locally with `mlx-audiogen-convert`.
@@ -49,6 +49,39 @@ Use these repo IDs with `mlx-audiogen-convert` to convert weights yourself, or t
 - **stereo variants** — use 8 codebooks instead of 4 for left/right channel separation; useful when output will be played back on stereo systems
 - **melody variants** — add `--melody my_audio.wav` to condition generation on the pitch contour of a reference file; works without `--melody` for text-only generation
 - **style variants** — add `--style-audio reference.wav` to match the timbre and texture of a reference clip using MERT feature extraction; `--style-coef` controls how strongly the text prompt influences the output (default: 5.0)
+
+### License and attribution
+
+<Warning>
+**MusicGen weights are licensed CC-BY-NC-4.0 — non-commercial use only.** This catches people out, because upstream splits the grant: the *code* is MIT, but the *weights* are [Creative Commons Attribution-NonCommercial 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The MIT grant does not reach the weights, and MIT and CC-BY-NC-4.0 are not interchangeable. If your use is commercial, MusicGen's weights do not permit it — the models on this page differ substantially here, so check [Licenses at a glance](#licenses-at-a-glance) before you choose one.
+</Warning>
+
+The upstream model card states it plainly:
+
+> Code is released under MIT, model weights are released under CC-BY-NC 4.0.
+
+Summarized (the [license text](https://creativecommons.org/licenses/by-nc/4.0/legalcode) governs):
+
+- Free to share and adapt for **non-commercial** purposes.
+- You must give appropriate credit and indicate whether you made changes.
+- **No commercial use** — including use primarily directed towards commercial advantage or monetary compensation.
+
+MusicGen was created by Jade Copet, Felix Kreuk, Itai Gat, Tal Remez, David Kant, Gabriel Synnaeve, Yossi Adi, and Alexandre Défossez, and published in [Simple and Controllable Music Generation](https://arxiv.org/abs/2306.05284). Copyright © Meta Platforms, Inc. and affiliates.
+
+#### Bundled components
+
+Each `jasonvassallo/mlx-musicgen-*` mirror ships more than the MusicGen weights, and the extra pieces carry their own licenses:
+
+| Component | Upstream | License | Shipped in |
+|---|---|---|---|
+| T5 text encoder | [`google-t5/t5-base`](https://huggingface.co/google-t5/t5-base) | Apache-2.0 | Every MusicGen mirror — full text at `LICENSE.t5-apache-2.0` |
+| MERT-v1-95M feature extractor | [`m-a-p/MERT-v1-95M`](https://huggingface.co/m-a-p/MERT-v1-95M) | CC-BY-NC-4.0 | `mlx-musicgen-style` only |
+
+T5 is Apache-2.0 — a different grant from the CC-BY-NC-4.0 covering the weights beside it — so each mirror carries a separate copy of its license text rather than relying on the repository's own. MERT shares the mirror's CC-BY-NC-4.0, so the repository `LICENSE` already covers it.
+
+<Note>
+MLX AudioGen's own Apache-2.0 license covers the **conversion code only** — it grants you no rights in any model's weights. The conversions published at `jasonvassallo/mlx-musicgen-*` are derivative works: weights remapped and re-serialized into MLX format for Apple silicon, with no retraining and no fine-tuning. Each mirror ships its own `LICENSE`, `NOTICE`, and model card.
+</Note>
 
 ## Stable Audio Open
 
@@ -197,11 +230,29 @@ Demucs v4 (HTDemucs) is Meta's hybrid source separation model. It takes a stereo
 
 Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Net connected by a CrossTransformer. Pre-converted MLX weights auto-download from [HuggingFace](https://huggingface.co/jasonvassallo/demucs-htdemucs-mlx) when you first run separation.
 
+**License —** Demucs v4 is **MIT**, covering both the upstream code and the released checkpoints, per the project's [LICENSE](https://github.com/facebookresearch/demucs/blob/main/LICENSE). MIT is permissive and does allow commercial use, unlike [MusicGen](#musicgen). It is not obligation-free, though: the copyright and permission notice must travel with copies, which is why the converted mirror ships the full license text rather than only a `license: mit` tag. HTDemucs v4 was created by Simon Rouard, Francisco Massa, and Alexandre Défossez, and published in [Hybrid Transformers for Music Source Separation](https://arxiv.org/abs/2211.08553). Copyright © Meta Platforms, Inc. and affiliates.
+
+## Licenses at a glance
+
+Licenses differ substantially between these models, and the difference matters most when your use is commercial. This table summarizes — the license linked from each model's own section governs.
+
+| Model | Weights license | Commercial use |
+|---|---|---|
+| [MusicGen](#musicgen) — all variants | CC-BY-NC-4.0 | **No** — non-commercial only |
+| [Stable Audio Open](#stable-audio-open) | Stability AI Community License | Registration required; the grant terminates above USD $1,000,000 annual revenue |
+| [MOSS-SoundEffect](#moss-soundeffect) | Apache-2.0 | Yes |
+| [Demucs v4](#demucs-v4) | MIT | Yes |
+| [Lyria](#lyria-cloud-—-google-vertex-ai) | Hosted service — no weights are distributed | Governed by your Google Cloud agreement; output is SynthID-watermarked |
+
+<Note>
+MLX AudioGen is itself Apache-2.0, but that license covers **this project's code**. It grants you no rights in any model's weights — only each model's upstream license does that.
+</Note>
+
 ## Picking the right model
 
 <AccordionGroup>
   <Accordion title="I want to generate music from a text description">
-    Start with **MusicGen small** for fast results. Use **MusicGen large** or **MusicGen Stereo large** when you need higher quality or stereo output for production use.
+    Start with **MusicGen small** for fast results. Use **MusicGen large** or **MusicGen Stereo large** when you need higher quality or stereo output for production use. Note that all MusicGen weights are **CC-BY-NC-4.0 — non-commercial only**; see [Licenses at a glance](#licenses-at-a-glance) if your use is commercial.
   </Accordion>
   <Accordion title="I want stereo output at CD quality (44.1 kHz)">
     Use **Stable Audio Open small** or **Stable Audio Open 1.0**. Stable Audio always outputs stereo at 44.1 kHz, compared to MusicGen's 32 kHz.
@@ -219,6 +270,6 @@ Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Ne
     Use **HTDemucs** for 4-stem separation (drums, bass, vocals, other), or **htdemucs_6s** if you also need guitar and piano isolated separately.
   </Accordion>
   <Accordion title="I want Google's Lyria model and I'm OK sending prompts to the cloud">
-    Use **Lyria** (`lyria-002`). It runs on Google Vertex AI rather than on your Mac, so your prompt is sent to Google Cloud and the audio is SynthID-watermarked. Enable it with the `[cloud]` extra plus a `GOOGLE_CLOUD_PROJECT` and Application Default Credentials — no API key. The `lyria-3-*` variants are preview/experimental. See [Lyria](#lyria-cloud-google-vertex-ai) above.
+    Use **Lyria** (`lyria-002`). It runs on Google Vertex AI rather than on your Mac, so your prompt is sent to Google Cloud and the audio is SynthID-watermarked. Enable it with the `[cloud]` extra plus a `GOOGLE_CLOUD_PROJECT` and Application Default Credentials — no API key. The `lyria-3-*` variants are preview/experimental. See [Lyria](#lyria-cloud-—-google-vertex-ai) above.
   </Accordion>
 </AccordionGroup>
