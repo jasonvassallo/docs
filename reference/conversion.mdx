@@ -18,8 +18,20 @@ Before you can generate audio with a specific model variant, the weights need to
 </ParamField>
 
 <ParamField path="--dtype" type="string">
-  Numeric precision for the converted weights. Options are `float16`, `bfloat16`, or `float32`. When not specified, the converter uses the source model's native precision. `bfloat16` is a good balance between memory usage and quality on Apple Silicon.
+  Numeric precision for the converted weights. Options are `float16`, `bfloat16`, or `float32`. When not specified, the converter uses the source model's native precision.
+
+  `bfloat16` is a good balance between memory usage and quality on Apple Silicon, and is the safer of the two 16-bit options: it keeps `float32`'s exponent range while halving the size. `float16` is the same size but caps at 65504, so an unusually large weight can overflow to infinity — the converter warns if that happens, and you can re-run with `bfloat16` or `float32`.
 </ParamField>
+
+<Note>
+  In v0.2.0 and earlier, `--dtype bfloat16` silently wrote `float16` weights. If you converted a model with `bfloat16` on one of those versions, **upgrade first** — re-running the conversion on an affected version just invokes the same broken converter and writes `float16` again:
+
+  ```bash
+  pip install --upgrade mlx-audiogen
+  ```
+
+  Then re-run the conversion to get genuine bfloat16 output.
+</Note>
 
 <ParamField path="--trust-remote-code" type="boolean">
   Allow conversion of repo IDs that are not on the built-in whitelist. Use this flag when working with fine-tuned or community variants that follow the same architecture as a supported model.
