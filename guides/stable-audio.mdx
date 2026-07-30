@@ -55,11 +55,13 @@ Stable Audio Open comes in two variants:
 
 | Variant | HuggingFace repo | Notes |
 |---------|-----------------|-------|
-| `small` | `stabilityai/stable-audio-open-small` | Open access, downloads immediately |
-| `1.0` | `stabilityai/stable-audio-open-1.0` | Larger DiT, dual time conditioning — gated |
+| `small` | `stabilityai/stable-audio-open-small` | **Gated** — accept the license first |
+| `1.0` | `stabilityai/stable-audio-open-1.0` | Larger DiT, dual time conditioning — **gated** |
 
 <Warning>
-  **Stable Audio Open 1.0 is a gated model.** You must visit [huggingface.co/stabilityai/stable-audio-open-1.0](https://huggingface.co/stabilityai/stable-audio-open-1.0) and accept the license agreement before you can download or convert its weights. Attempting conversion without accepting the license will fail with an authentication error.
+  **Both Stable Audio variants are gated.** You must visit the model page —
+  [small](https://huggingface.co/stabilityai/stable-audio-open-small) or
+  [1.0](https://huggingface.co/stabilityai/stable-audio-open-1.0) — accept the license agreement, and log in with `huggingface-cli login` before you can download or convert the weights. Attempting conversion without accepting the license will fail with an authentication error.
 </Warning>
 
 To convert a variant:
