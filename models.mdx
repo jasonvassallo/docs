@@ -3,7 +3,7 @@ title: "Supported models: MusicGen, Stable Audio, MOSS-SoundEffect, Lyria, and D
 description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, MOSS-SoundEffect, the cloud Lyria models, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
 ---
 
-MLX AudioGen runs four on-device model families plus one opt-in cloud model. **On-device:** MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-sound-effect generation, and Demucs v4 for stem separation — all running locally on your Mac's Metal GPU. **Cloud:** Lyria, Google's hosted music model on Vertex AI, is the first non-local model and is off by default. Each on-device family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for all on-device variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use.
+MLX AudioGen runs four on-device model families plus one opt-in cloud model. **On-device:** MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-sound-effect generation, and Demucs v4 for stem separation — all running locally on your Mac's Metal GPU. **Cloud:** Lyria, Google's hosted music model on Vertex AI, is the first non-local model and is off by default. Each on-device family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for most on-device variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use. The stereo-melody MusicGen variants are the exception — no converted weights are published for them, so convert those locally with `mlx-audiogen-convert`.
 
 <Tip>
 If you're using MLX AudioGen for the first time, start with a small model. The `musicgen-small` and `stable-audio-open-small` variants download and run fastest, and they produce good results for most prompts. Switch to larger variants once you're comfortable with the generation workflow.
@@ -58,7 +58,7 @@ Stable Audio Open is a diffusion-based model from Stability AI that generates st
 
 | Variant | Sample rate | Output | Notes |
 |---|---|---|---|
-| small | 44.1 kHz | Stereo | Open access, downloads automatically |
+| small | 44.1 kHz | Stereo | **Gated** — accept the license on HuggingFace first |
 | 1.0 | 44.1 kHz | Stereo | Larger DiT, dual time conditioning — gated model |
 
 ### HuggingFace repo IDs
@@ -69,8 +69,26 @@ Stable Audio Open is a diffusion-based model from Stability AI that generates st
 | Stable Audio Open 1.0 | `stabilityai/stable-audio-open-1.0` |
 
 <Warning>
-Stable Audio Open 1.0 is a gated model. Before you can download or convert the weights, you must accept the license agreement on the [HuggingFace model page](https://huggingface.co/stabilityai/stable-audio-open-1.0) and authenticate with `huggingface-cli login`. The small variant has no gate and downloads automatically.
+**Both** Stable Audio Open variants are gated, including the small one. Before you can download or convert either, accept the license agreement on its HuggingFace page ([small](https://huggingface.co/stabilityai/stable-audio-open-small), [1.0](https://huggingface.co/stabilityai/stable-audio-open-1.0)) and authenticate with `huggingface-cli login`. Without that you will get an "Access to model … is restricted" error rather than a download.
 </Warning>
+
+### License and attribution
+
+**Powered by Stability AI**
+
+Stable Audio Open is licensed under the [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md), not by MLX AudioGen's Apache-2.0 license — that covers the conversion code only.
+
+> This Stability AI Model is licensed under the Stability AI Community License, Copyright ©  Stability AI Ltd. All Rights Reserved
+
+Summarized (the agreement itself governs):
+
+- Free for research and non-commercial use.
+- Commercial use requires registration at [stability.ai/community-license](https://stability.ai/community-license).
+- The grant **terminates above USD $1,000,000 annual revenue**.
+- Stability AI's Acceptable Use Policy applies to generated output.
+- You may not use the model or its outputs to create or improve another foundational generative AI model.
+
+The MLX conversions published at `jasonvassallo/mlx-stable-audio*` are derivative works: weights converted to MLX format for Apple silicon, with no retraining and no change to weight values.
 
 ### Stable Audio parameters
 

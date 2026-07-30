@@ -162,8 +162,8 @@ The first run downloads the pre-converted MLX weights (~500 MB for the small mod
 ## Known issues
 
 <AccordionGroup>
-  <Accordion title="Stable Audio 1.0 requires a HuggingFace login">
-    The `stabilityai/stable-audio-open-1.0` model is gated — you must accept the license agreement on the [HuggingFace model page](https://huggingface.co/stabilityai/stable-audio-open-1.0) and log in with `huggingface-cli login` before the weights will download. The small variant (`stabilityai/stable-audio-open-small`) has no gate and downloads automatically.
+  <Accordion title="Stable Audio requires a HuggingFace login">
+    **Both** Stable Audio variants are gated — you must accept the license agreement on the model page ([small](https://huggingface.co/stabilityai/stable-audio-open-small), [1.0](https://huggingface.co/stabilityai/stable-audio-open-1.0)) and log in with `huggingface-cli login` before the weights will download.
   </Accordion>
   <Accordion title="mlx-audiogen command not found after install">
     If the CLI command is not found, your Python environment's `bin` directory may not be on your `PATH`. Try running `python3 -m mlx_audiogen.cli.generate` as a fallback, or activate the virtual environment where you installed the package.
