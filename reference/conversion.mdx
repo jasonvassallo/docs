@@ -24,7 +24,13 @@ Before you can generate audio with a specific model variant, the weights need to
 </ParamField>
 
 <Note>
-  In v0.2.0 and earlier, `--dtype bfloat16` silently wrote `float16` weights. If you converted a model with `bfloat16` on one of those versions, re-run the conversion to get genuine bfloat16 output.
+  In v0.2.0 and earlier, `--dtype bfloat16` silently wrote `float16` weights. If you converted a model with `bfloat16` on one of those versions, **upgrade first** — re-running the conversion on an affected version just invokes the same broken converter and writes `float16` again:
+
+  ```bash
+  pip install --upgrade mlx-audiogen
+  ```
+
+  Then re-run the conversion to get genuine bfloat16 output.
 </Note>
 
 <ParamField path="--trust-remote-code" type="boolean">
