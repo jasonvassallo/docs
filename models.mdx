@@ -53,7 +53,11 @@ Use these repo IDs with `mlx-audiogen-convert` to convert weights yourself, or t
 ### License and attribution
 
 <Warning>
-**MusicGen weights are licensed CC-BY-NC-4.0 — non-commercial use only.** This catches people out, because upstream splits the grant: the *code* is MIT, but the *weights* are [Creative Commons Attribution-NonCommercial 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The MIT grant does not reach the weights, and MIT and CC-BY-NC-4.0 are not interchangeable. If your use is commercial, MusicGen's weights do not permit it — the models on this page differ substantially here, so check [Licenses at a glance](#licenses-at-a-glance) before you choose one.
+**MusicGen weights are licensed CC-BY-NC-4.0 — non-commercial use only.**
+
+Upstream splits the grant across two licenses. The *code* is MIT. The *weights* are [Creative Commons Attribution-NonCommercial 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The MIT grant does not reach the weights, so you cannot rely on it to use them.
+
+If your use is commercial, MusicGen does not permit it. Check [Licenses at a glance](#licenses-at-a-glance) before you choose a model — the terms differ substantially across this page.
 </Warning>
 
 The upstream model card states it plainly:
@@ -80,7 +84,7 @@ Each `jasonvassallo/mlx-musicgen-*` mirror ships more than the MusicGen weights,
 T5 is Apache-2.0 — a different grant from the CC-BY-NC-4.0 covering the weights beside it — so each mirror carries a separate copy of its license text rather than relying on the repository's own. MERT shares the mirror's CC-BY-NC-4.0, so the repository `LICENSE` already covers it.
 
 <Note>
-MLX AudioGen's own Apache-2.0 license covers the **conversion code only** — it grants you no rights in any model's weights. The conversions published at `jasonvassallo/mlx-musicgen-*` are derivative works: weights remapped and re-serialized into MLX format for Apple silicon, with no retraining and no fine-tuning. Each mirror ships its own `LICENSE`, `NOTICE`, and model card.
+MLX AudioGen's own Apache-2.0 license covers **this project's code** — including the converter, the inference pipelines, the server, and the web UI. It grants you **no rights in any model's weights**. The conversions published at `jasonvassallo/mlx-musicgen-*` are derivative works: weights remapped and re-serialized into MLX format for Apple silicon, with no retraining and no fine-tuning. Each mirror ships its own `LICENSE`, `NOTICE`, and model card.
 </Note>
 
 ## Stable Audio Open
@@ -109,7 +113,7 @@ Stable Audio Open is a diffusion-based model from Stability AI that generates st
 
 **Powered by Stability AI**
 
-Stable Audio Open is licensed under the [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md), not by MLX AudioGen's Apache-2.0 license — that covers the conversion code only.
+Stable Audio Open is licensed under the [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md), not by MLX AudioGen's Apache-2.0 license — that covers this project's code, never the model weights.
 
 > This Stability AI Model is licensed under the Stability AI Community License, Copyright ©  Stability AI Ltd. All Rights Reserved
 
@@ -146,7 +150,7 @@ MOSS-SoundEffect is available through the [web UI](/integrations/web-ui) and the
 
 | Variant | HuggingFace repo | Output | License |
 |---|---|---|---|
-| moss-sfx (4-bit) | `mlx-community/MOSS-SoundEffect-MLX-4bit` | 24 kHz mono | Apache-2.0 |
+| moss-sfx (4-bit) | `mlx-community/MOSS-SoundEffect-MLX-4bit` | 24 kHz mono | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) |
 
 MOSS-SoundEffect runs through the [`mlx-speech`](https://pypi.org/project/mlx-speech/) package, which auto-resolves both the model weights and its companion `appautomaton/openmoss-audio-tokenizer-mlx` codec from the HuggingFace cache on first use. Because the weights resolve on demand, the model is always offered in the web UI's model selector even before a local copy has been downloaded.
 
@@ -234,15 +238,15 @@ Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Ne
 
 ## Licenses at a glance
 
-Licenses differ substantially between these models, and the difference matters most when your use is commercial. This table summarizes — the license linked from each model's own section governs.
+Licenses differ substantially between these models, and the difference matters most when your use is commercial. This table summarizes; the linked license text governs. Lyria is the exception — it distributes no weights, so no model license applies and your agreement with Google Cloud covers your use instead.
 
 | Model | Weights license | Commercial use |
 |---|---|---|
-| [MusicGen](#musicgen) — all variants | CC-BY-NC-4.0 | **No** — non-commercial only |
-| [Stable Audio Open](#stable-audio-open) | Stability AI Community License | Registration required; the grant terminates above USD $1,000,000 annual revenue |
-| [MOSS-SoundEffect](#moss-soundeffect) | Apache-2.0 | Yes |
-| [Demucs v4](#demucs-v4) | MIT | Yes |
-| [Lyria](#lyria-cloud-google-vertex-ai) | Hosted service — no weights are distributed | Governed by your Google Cloud agreement; output is SynthID-watermarked |
+| [MusicGen](#musicgen) — all variants | [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode) | **No** — non-commercial only |
+| [Stable Audio Open](#stable-audio-open) | [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md) | Registration required; the grant terminates above USD $1,000,000 annual revenue |
+| [MOSS-SoundEffect](#moss-soundeffect) | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) | Yes |
+| [Demucs v4](#demucs-v4) | [MIT](https://github.com/facebookresearch/demucs/blob/main/LICENSE) | Yes |
+| [Lyria](#lyria-cloud-google-vertex-ai) | Hosted service — no weights are distributed | Your Google Cloud agreement governs; output is SynthID-watermarked |
 
 <Note>
 MLX AudioGen is itself Apache-2.0, but that license covers **this project's code**. It grants you no rights in any model's weights — only each model's upstream license does that.
