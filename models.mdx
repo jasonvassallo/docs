@@ -1,6 +1,6 @@
 ---
 title: "Supported models: MusicGen, Stable Audio, MOSS-SoundEffect, Lyria, and Demucs"
-description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, MOSS-SoundEffect, the cloud Lyria models, and Demucs — with specs, HuggingFace repo IDs, licensing, and guidance on which to choose."
+description: "Compare MLX AudioGen's models — MusicGen, Stable Audio Open, MOSS-SoundEffect, Lyria, and Demucs — on specs, repo IDs, licensing, and which to pick."
 ---
 
 MLX AudioGen runs four on-device model families plus one opt-in cloud model. **On-device:** MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-sound-effect generation, and Demucs v4 for stem separation — all running locally on your Mac's Metal GPU. **Cloud:** Lyria, Google's hosted music model on Vertex AI, is the first non-local model and is off by default. Each on-device family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for most on-device variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use. The stereo-melody MusicGen variants are the exception — no converted weights are published for them, so convert those locally with `mlx-audiogen-convert`.
