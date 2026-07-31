@@ -78,8 +78,8 @@ Each `jasonvassallo/mlx-musicgen-*` mirror ships more than the MusicGen weights,
 
 | Component | Upstream | License | Shipped in |
 |---|---|---|---|
-| T5 text encoder | [`google-t5/t5-base`](https://huggingface.co/google-t5/t5-base) | Apache-2.0 | Every MusicGen mirror — full text at `LICENSE.t5-apache-2.0` |
-| MERT-v1-95M feature extractor | [`m-a-p/MERT-v1-95M`](https://huggingface.co/m-a-p/MERT-v1-95M) | CC-BY-NC-4.0 | `mlx-musicgen-style` only |
+| T5 text encoder | [`google-t5/t5-base`](https://huggingface.co/google-t5/t5-base) | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) | Every MusicGen mirror — full text at `LICENSE.t5-apache-2.0` |
+| MERT-v1-95M feature extractor | [`m-a-p/MERT-v1-95M`](https://huggingface.co/m-a-p/MERT-v1-95M) | [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode) | `mlx-musicgen-style` only |
 
 T5 is Apache-2.0 — a different grant from the CC-BY-NC-4.0 covering the weights beside it — so each mirror carries a separate copy of its license text rather than relying on the repository's own. MERT shares the mirror's CC-BY-NC-4.0, so the repository `LICENSE` already covers it.
 
@@ -246,12 +246,12 @@ Simon Rouard, Francisco Massa, and Alexandre Défossez created HTDemucs v4 and p
 
 Licenses differ substantially between these models, and the difference matters most when your use is commercial. This table summarizes; the linked license text governs. Lyria is the exception — it distributes no weights, so no model license applies and your agreement with Google Cloud covers your use instead.
 
-| Model | Weights license | Commercial use |
+| Model | Upstream license | Commercial use |
 |---|---|---|
-| [MusicGen](#musicgen) — all variants | [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode) weights; MIT code | **No** for the weights — non-commercial only |
+| [MusicGen](#musicgen) — all variants | Weights [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode); code MIT | **No** for the weights — non-commercial only |
 | [Stable Audio Open](#stable-audio-open) | [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md) | Registration required; the grant terminates above USD $1,000,000 annual revenue |
 | [MOSS-SoundEffect](#moss-soundeffect) | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) | Yes |
-| [Demucs v4](#demucs-v4) | [MIT](https://github.com/facebookresearch/demucs/blob/main/LICENSE) | Permitted by the license — but [check the training-data note](#demucs-v4) first |
+| [Demucs v4](#demucs-v4) | Project released under [MIT](https://github.com/facebookresearch/demucs/blob/main/LICENSE); upstream publishes no checkpoint-specific terms | [Read the note first](#demucs-v4) — MIT is permissive, but nothing upstream states that it covers the released checkpoints |
 | [Lyria](#lyria-cloud-google-vertex-ai) | Hosted service — no weights are distributed | Your Google Cloud agreement governs; output is SynthID-watermarked |
 
 <Note>
