@@ -1,6 +1,6 @@
 ---
 title: "Supported models: MusicGen, Stable Audio, MOSS-SoundEffect, Lyria, and Demucs"
-description: "Compare all MLX AudioGen model variants — MusicGen, Stable Audio Open, MOSS-SoundEffect, the cloud Lyria models, and Demucs — with specs, HuggingFace repo IDs, and guidance on which to choose."
+description: "Compare MLX AudioGen's models — MusicGen, Stable Audio Open, MOSS-SoundEffect, Lyria, and Demucs — on specs, repo IDs, licensing, and which to pick."
 ---
 
 MLX AudioGen runs four on-device model families plus one opt-in cloud model. **On-device:** MusicGen for autoregressive text-to-audio, Stable Audio Open for diffusion-based stereo generation, MOSS-SoundEffect for text-to-sound-effect generation, and Demucs v4 for stem separation — all running locally on your Mac's Metal GPU. **Cloud:** Lyria, Google's hosted music model on Vertex AI, is the first non-local model and is off by default. Each on-device family has multiple variants tuned for different output quality, speed, and conditioning capabilities. Pre-converted MLX weights for most on-device variants are published on [HuggingFace](https://huggingface.co/jasonvassallo) and download automatically on first use. The stereo-melody MusicGen variants are the exception — no converted weights are published for them, so convert those locally with `mlx-audiogen-convert`.
@@ -50,6 +50,43 @@ Use these repo IDs with `mlx-audiogen-convert` to convert weights yourself, or t
 - **melody variants** — add `--melody my_audio.wav` to condition generation on the pitch contour of a reference file; works without `--melody` for text-only generation
 - **style variants** — add `--style-audio reference.wav` to match the timbre and texture of a reference clip using MERT feature extraction; `--style-coef` controls how strongly the text prompt influences the output (default: 5.0)
 
+### License and attribution
+
+<Warning>
+**MusicGen weights are licensed CC-BY-NC-4.0 — non-commercial use only.**
+
+Meta splits the grant across two licenses. The *code* is MIT. The *weights* are [Creative Commons Attribution-NonCommercial 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The MIT grant does not reach the weights, so you cannot rely on it to use them.
+
+If your use is commercial, MusicGen's **weights** do not permit it. The MIT code itself carries no such restriction. Check [Licenses at a glance](#licenses-at-a-glance) before you choose a model — the terms differ substantially across this page.
+</Warning>
+
+The upstream model card states it plainly:
+
+> Code is released under MIT, model weights are released under CC-BY-NC 4.0.
+
+Summarized (the [license text](https://creativecommons.org/licenses/by-nc/4.0/legalcode) governs):
+
+- Free to share and adapt for **non-commercial** purposes.
+- You must give appropriate credit and indicate whether you made changes.
+- **No commercial use** — including use primarily directed towards commercial advantage or monetary compensation.
+
+Jade Copet, Felix Kreuk, Itai Gat, Tal Remez, David Kant, Gabriel Synnaeve, Yossi Adi, and Alexandre Défossez created MusicGen and published it in [Simple and Controllable Music Generation](https://arxiv.org/abs/2306.05284). Copyright © Meta Platforms, Inc. and affiliates.
+
+#### Bundled components
+
+Each `jasonvassallo/mlx-musicgen-*` mirror ships more than the MusicGen weights, and the extra pieces carry their own licenses:
+
+| Component | Upstream | License | Shipped in |
+|---|---|---|---|
+| T5 text encoder | [`google-t5/t5-base`](https://huggingface.co/google-t5/t5-base) | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) | Every MusicGen mirror — full text at `LICENSE.t5-apache-2.0` |
+| MERT-v1-95M feature extractor | [`m-a-p/MERT-v1-95M`](https://huggingface.co/m-a-p/MERT-v1-95M) | [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode) | `mlx-musicgen-style` only |
+
+T5 is Apache-2.0 — a different grant from the CC-BY-NC-4.0 covering the weights beside it — so each mirror carries a separate copy of its license text rather than relying on the repository's own. MERT shares the mirror's CC-BY-NC-4.0, so the repository `LICENSE` already covers it.
+
+<Note>
+MLX AudioGen's own Apache-2.0 license covers **this project's code** — including the converter, the inference pipelines, the server, and the web UI. It grants you **no rights in any model's weights**. The mirrors published at `jasonvassallo/mlx-musicgen-*` are format-converted artifacts: weights remapped and re-serialized into MLX format for Apple silicon, with no retraining and no fine-tuning. The upstream CC-BY-NC-4.0 terms reach them unchanged, so each mirror ships its own `LICENSE`, `NOTICE`, and model card.
+</Note>
+
 ## Stable Audio Open
 
 Stable Audio Open is a diffusion-based model from Stability AI that generates stereo audio at 44.1 kHz. It encodes your prompt with T5, applies rectified flow ODE sampling through a Diffusion Transformer (DiT), then decodes with an Oobleck VAE. The diffusion approach lets you control generation quality vs. speed through the number of steps and CFG scale.
@@ -76,7 +113,7 @@ Stable Audio Open is a diffusion-based model from Stability AI that generates st
 
 **Powered by Stability AI**
 
-Stable Audio Open is licensed under the [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md), not by MLX AudioGen's Apache-2.0 license — that covers the conversion code only.
+Stable Audio Open is licensed under the [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md), not by MLX AudioGen's Apache-2.0 license — that covers this project's code, never the model weights.
 
 > This Stability AI Model is licensed under the Stability AI Community License, Copyright ©  Stability AI Ltd. All Rights Reserved
 
@@ -113,7 +150,7 @@ MOSS-SoundEffect is available through the [web UI](/integrations/web-ui) and the
 
 | Variant | HuggingFace repo | Output | License |
 |---|---|---|---|
-| moss-sfx (4-bit) | `mlx-community/MOSS-SoundEffect-MLX-4bit` | 24 kHz mono | Apache-2.0 |
+| moss-sfx (4-bit) | `mlx-community/MOSS-SoundEffect-MLX-4bit` | 24 kHz mono | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) |
 
 MOSS-SoundEffect runs through the [`mlx-speech`](https://pypi.org/project/mlx-speech/) package, which auto-resolves both the model weights and its companion `appautomaton/openmoss-audio-tokenizer-mlx` codec from the HuggingFace cache on first use. Because the weights resolve on demand, the model is always offered in the web UI's model selector even before a local copy has been downloaded.
 
@@ -132,7 +169,7 @@ MOSS-SoundEffect uses autoregressive sampling parameters. In the web UI, selecti
 These defaults are tuned for MOSS-SoundEffect and differ from MusicGen's. The web UI seeds them automatically when you select the model. Over the HTTP API, `top_p` and `repetition_penalty` default to MOSS-appropriate values, and when you omit `temperature`/`top_k` the server substitutes the MOSS defaults (1.5 / 50) in place of the MusicGen schema defaults. See the [generation API reference](/api/generation) for the exact wire-format defaults.
 </Note>
 
-## Lyria (cloud — Google Vertex AI)
+## Lyria (cloud, Google Vertex AI)
 
 Lyria is Google's hosted music-generation model. You access it through Vertex AI. It is the **first and only cloud model** in MLX AudioGen. Unlike every other model on this page, it does **not** run on your Mac. When you generate with Lyria, MLX AudioGen sends your prompt to Google Cloud. Google's infrastructure runs the generation. You then receive the finished audio. Lyria is **opt-in and off by default**. Until you configure it, you never see it in the model selector or the API model list. The rest of MLX AudioGen stays fully local and offline.
 
@@ -197,11 +234,35 @@ Demucs v4 (HTDemucs) is Meta's hybrid source separation model. It takes a stereo
 
 Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Net connected by a CrossTransformer. Pre-converted MLX weights auto-download from [HuggingFace](https://huggingface.co/jasonvassallo/demucs-htdemucs-mlx) when you first run separation.
 
+**License —** Meta releases Demucs under the **MIT** license. Its README states that plainly: "Demucs is released under the MIT license as found in the [LICENSE](https://github.com/facebookresearch/demucs/blob/main/LICENSE) file." MIT is permissive, and far less restrictive than [MusicGen](#musicgen), but it is not obligation-free — the copyright and permission notice must travel with copies, which is why the converted mirror ships the full license text rather than only a `license: mit` tag.
+
+Simon Rouard, Francisco Massa, and Alexandre Défossez created HTDemucs v4 and published it in [Hybrid Transformers for Music Source Separation](https://arxiv.org/abs/2211.08553). Copyright © Meta Platforms, Inc. and affiliates.
+
+<Note>
+**Do your own diligence before commercial use.** Upstream states one MIT license for the project and publishes no separate terms for the released checkpoints — the license text itself grants rights in "the Software". Separately, the README records that `htdemucs` was trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html) plus 800 extra songs, and MUSDB18-HQ carries its own non-commercial terms. Whether training data terms reach model weights is unsettled, and Meta evidently takes the position that MIT covers what it ships. This page reports what upstream states rather than resolving that question for you.
+</Note>
+
+## Licenses at a glance
+
+Licenses differ substantially between these models, and the difference matters most when your use is commercial. This table summarizes; the linked license text governs. Lyria is the exception — it distributes no weights, so no model license applies and your agreement with Google Cloud covers your use instead.
+
+| Model | Upstream license | Commercial use |
+|---|---|---|
+| [MusicGen](#musicgen) — all variants | Weights [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode); code MIT | **No** for the weights — non-commercial only |
+| [Stable Audio Open](#stable-audio-open) | [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md) | Registration required; the grant terminates above USD $1,000,000 annual revenue |
+| [MOSS-SoundEffect](#moss-soundeffect) | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) | Yes |
+| [Demucs v4](#demucs-v4) | Project released under [MIT](https://github.com/facebookresearch/demucs/blob/main/LICENSE); upstream publishes no checkpoint-specific terms | [Read the note first](#demucs-v4) — MIT is permissive, but nothing upstream states that it covers the released checkpoints |
+| [Lyria](#lyria-cloud-google-vertex-ai) | Hosted service — no weights are distributed | Your Google Cloud agreement governs; output is SynthID-watermarked |
+
+<Note>
+MLX AudioGen is itself Apache-2.0, but that license covers **this project's code**. It grants you no rights in any model's weights — only each model's upstream license does that.
+</Note>
+
 ## Picking the right model
 
 <AccordionGroup>
   <Accordion title="I want to generate music from a text description">
-    Start with **MusicGen small** for fast results. Use **MusicGen large** or **MusicGen Stereo large** when you need higher quality or stereo output for production use.
+    Start with **MusicGen small** for fast results. Use **MusicGen large** or **MusicGen Stereo large** when you need higher quality or stereo output for production use. Note that all MusicGen weights are **CC-BY-NC-4.0 — non-commercial only**; see [Licenses at a glance](#licenses-at-a-glance) if your use is commercial.
   </Accordion>
   <Accordion title="I want stereo output at CD quality (44.1 kHz)">
     Use **Stable Audio Open small** or **Stable Audio Open 1.0**. Stable Audio always outputs stereo at 44.1 kHz, compared to MusicGen's 32 kHz.
