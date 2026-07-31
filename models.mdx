@@ -55,9 +55,9 @@ Use these repo IDs with `mlx-audiogen-convert` to convert weights yourself, or t
 <Warning>
 **MusicGen weights are licensed CC-BY-NC-4.0 — non-commercial use only.**
 
-Upstream splits the grant across two licenses. The *code* is MIT. The *weights* are [Creative Commons Attribution-NonCommercial 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The MIT grant does not reach the weights, so you cannot rely on it to use them.
+Meta splits the grant across two licenses. The *code* is MIT. The *weights* are [Creative Commons Attribution-NonCommercial 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The MIT grant does not reach the weights, so you cannot rely on it to use them.
 
-If your use is commercial, MusicGen does not permit it. Check [Licenses at a glance](#licenses-at-a-glance) before you choose a model — the terms differ substantially across this page.
+If your use is commercial, MusicGen's **weights** do not permit it. The MIT code itself carries no such restriction. Check [Licenses at a glance](#licenses-at-a-glance) before you choose a model — the terms differ substantially across this page.
 </Warning>
 
 The upstream model card states it plainly:
@@ -70,7 +70,7 @@ Summarized (the [license text](https://creativecommons.org/licenses/by-nc/4.0/le
 - You must give appropriate credit and indicate whether you made changes.
 - **No commercial use** — including use primarily directed towards commercial advantage or monetary compensation.
 
-MusicGen was created by Jade Copet, Felix Kreuk, Itai Gat, Tal Remez, David Kant, Gabriel Synnaeve, Yossi Adi, and Alexandre Défossez, and published in [Simple and Controllable Music Generation](https://arxiv.org/abs/2306.05284). Copyright © Meta Platforms, Inc. and affiliates.
+Jade Copet, Felix Kreuk, Itai Gat, Tal Remez, David Kant, Gabriel Synnaeve, Yossi Adi, and Alexandre Défossez created MusicGen and published it in [Simple and Controllable Music Generation](https://arxiv.org/abs/2306.05284). Copyright © Meta Platforms, Inc. and affiliates.
 
 #### Bundled components
 
@@ -84,7 +84,7 @@ Each `jasonvassallo/mlx-musicgen-*` mirror ships more than the MusicGen weights,
 T5 is Apache-2.0 — a different grant from the CC-BY-NC-4.0 covering the weights beside it — so each mirror carries a separate copy of its license text rather than relying on the repository's own. MERT shares the mirror's CC-BY-NC-4.0, so the repository `LICENSE` already covers it.
 
 <Note>
-MLX AudioGen's own Apache-2.0 license covers **this project's code** — including the converter, the inference pipelines, the server, and the web UI. It grants you **no rights in any model's weights**. The conversions published at `jasonvassallo/mlx-musicgen-*` are derivative works: weights remapped and re-serialized into MLX format for Apple silicon, with no retraining and no fine-tuning. Each mirror ships its own `LICENSE`, `NOTICE`, and model card.
+MLX AudioGen's own Apache-2.0 license covers **this project's code** — including the converter, the inference pipelines, the server, and the web UI. It grants you **no rights in any model's weights**. The mirrors published at `jasonvassallo/mlx-musicgen-*` are format-converted artifacts: weights remapped and re-serialized into MLX format for Apple silicon, with no retraining and no fine-tuning. The upstream CC-BY-NC-4.0 terms reach them unchanged, so each mirror ships its own `LICENSE`, `NOTICE`, and model card.
 </Note>
 
 ## Stable Audio Open
@@ -234,7 +234,13 @@ Demucs v4 (HTDemucs) is Meta's hybrid source separation model. It takes a stereo
 
 Demucs uses a hybrid architecture combining a spectral U-Net and a temporal U-Net connected by a CrossTransformer. Pre-converted MLX weights auto-download from [HuggingFace](https://huggingface.co/jasonvassallo/demucs-htdemucs-mlx) when you first run separation.
 
-**License —** Demucs v4 is **MIT**, covering both the upstream code and the released checkpoints, per the project's [LICENSE](https://github.com/facebookresearch/demucs/blob/main/LICENSE). MIT is permissive and does allow commercial use, unlike [MusicGen](#musicgen). It is not obligation-free, though: the copyright and permission notice must travel with copies, which is why the converted mirror ships the full license text rather than only a `license: mit` tag. HTDemucs v4 was created by Simon Rouard, Francisco Massa, and Alexandre Défossez, and published in [Hybrid Transformers for Music Source Separation](https://arxiv.org/abs/2211.08553). Copyright © Meta Platforms, Inc. and affiliates.
+**License —** Meta releases Demucs under the **MIT** license. Its README states that plainly: "Demucs is released under the MIT license as found in the [LICENSE](https://github.com/facebookresearch/demucs/blob/main/LICENSE) file." MIT is permissive, and far less restrictive than [MusicGen](#musicgen), but it is not obligation-free — the copyright and permission notice must travel with copies, which is why the converted mirror ships the full license text rather than only a `license: mit` tag.
+
+Simon Rouard, Francisco Massa, and Alexandre Défossez created HTDemucs v4 and published it in [Hybrid Transformers for Music Source Separation](https://arxiv.org/abs/2211.08553). Copyright © Meta Platforms, Inc. and affiliates.
+
+<Note>
+**Do your own diligence before commercial use.** Upstream states one MIT license for the project and publishes no separate terms for the released checkpoints — the license text itself grants rights in "the Software". Separately, the README records that `htdemucs` was trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html) plus 800 extra songs, and MUSDB18-HQ carries its own non-commercial terms. Whether training data terms reach model weights is unsettled, and Meta evidently takes the position that MIT covers what it ships. This page reports what upstream states rather than resolving that question for you.
+</Note>
 
 ## Licenses at a glance
 
@@ -242,10 +248,10 @@ Licenses differ substantially between these models, and the difference matters m
 
 | Model | Weights license | Commercial use |
 |---|---|---|
-| [MusicGen](#musicgen) — all variants | [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode) | **No** — non-commercial only |
+| [MusicGen](#musicgen) — all variants | [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode) weights; MIT code | **No** for the weights — non-commercial only |
 | [Stable Audio Open](#stable-audio-open) | [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md) | Registration required; the grant terminates above USD $1,000,000 annual revenue |
 | [MOSS-SoundEffect](#moss-soundeffect) | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) | Yes |
-| [Demucs v4](#demucs-v4) | [MIT](https://github.com/facebookresearch/demucs/blob/main/LICENSE) | Yes |
+| [Demucs v4](#demucs-v4) | [MIT](https://github.com/facebookresearch/demucs/blob/main/LICENSE) | Permitted by the license — but [check the training-data note](#demucs-v4) first |
 | [Lyria](#lyria-cloud-google-vertex-ai) | Hosted service — no weights are distributed | Your Google Cloud agreement governs; output is SynthID-watermarked |
 
 <Note>
