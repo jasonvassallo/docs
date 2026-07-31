@@ -165,7 +165,7 @@ MOSS-SoundEffect uses autoregressive sampling parameters. In the web UI, selecti
 These defaults are tuned for MOSS-SoundEffect and differ from MusicGen's. The web UI seeds them automatically when you select the model. Over the HTTP API, `top_p` and `repetition_penalty` default to MOSS-appropriate values, and when you omit `temperature`/`top_k` the server substitutes the MOSS defaults (1.5 / 50) in place of the MusicGen schema defaults. See the [generation API reference](/api/generation) for the exact wire-format defaults.
 </Note>
 
-## Lyria (cloud — Google Vertex AI)
+## Lyria (cloud, Google Vertex AI)
 
 Lyria is Google's hosted music-generation model. You access it through Vertex AI. It is the **first and only cloud model** in MLX AudioGen. Unlike every other model on this page, it does **not** run on your Mac. When you generate with Lyria, MLX AudioGen sends your prompt to Google Cloud. Google's infrastructure runs the generation. You then receive the finished audio. Lyria is **opt-in and off by default**. Until you configure it, you never see it in the model selector or the API model list. The rest of MLX AudioGen stays fully local and offline.
 
@@ -242,7 +242,7 @@ Licenses differ substantially between these models, and the difference matters m
 | [Stable Audio Open](#stable-audio-open) | Stability AI Community License | Registration required; the grant terminates above USD $1,000,000 annual revenue |
 | [MOSS-SoundEffect](#moss-soundeffect) | Apache-2.0 | Yes |
 | [Demucs v4](#demucs-v4) | MIT | Yes |
-| [Lyria](#lyria-cloud-—-google-vertex-ai) | Hosted service — no weights are distributed | Governed by your Google Cloud agreement; output is SynthID-watermarked |
+| [Lyria](#lyria-cloud-google-vertex-ai) | Hosted service — no weights are distributed | Governed by your Google Cloud agreement; output is SynthID-watermarked |
 
 <Note>
 MLX AudioGen is itself Apache-2.0, but that license covers **this project's code**. It grants you no rights in any model's weights — only each model's upstream license does that.
@@ -270,6 +270,6 @@ MLX AudioGen is itself Apache-2.0, but that license covers **this project's code
     Use **HTDemucs** for 4-stem separation (drums, bass, vocals, other), or **htdemucs_6s** if you also need guitar and piano isolated separately.
   </Accordion>
   <Accordion title="I want Google's Lyria model and I'm OK sending prompts to the cloud">
-    Use **Lyria** (`lyria-002`). It runs on Google Vertex AI rather than on your Mac, so your prompt is sent to Google Cloud and the audio is SynthID-watermarked. Enable it with the `[cloud]` extra plus a `GOOGLE_CLOUD_PROJECT` and Application Default Credentials — no API key. The `lyria-3-*` variants are preview/experimental. See [Lyria](#lyria-cloud-—-google-vertex-ai) above.
+    Use **Lyria** (`lyria-002`). It runs on Google Vertex AI rather than on your Mac, so your prompt is sent to Google Cloud and the audio is SynthID-watermarked. Enable it with the `[cloud]` extra plus a `GOOGLE_CLOUD_PROJECT` and Application Default Credentials — no API key. The `lyria-3-*` variants are preview/experimental. See [Lyria](#lyria-cloud-google-vertex-ai) above.
   </Accordion>
 </AccordionGroup>
