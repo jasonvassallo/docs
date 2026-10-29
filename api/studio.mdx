@@ -171,7 +171,7 @@ Use the supplied Max/Node bridge for Live control. A custom bridge must preserve
 - Reload or reconnect rotates the epoch, creates a new session ID and clears confirmation. The bridge rejects callbacks from an earlier epoch and deduplicates command execution within its current epoch. A Node-only restart requires full device reload.
 - A failed write or failed readback is unknown unless the bridge can establish that no write occurred. It cannot report rejection merely because an acknowledgement was lost.
 
-The bridge exposes no arbitrary LiveAPI method, shell, filesystem or network dispatcher. Inventory limits are 64 tracks, 256 devices, 2,048 parameters and 1 MiB. Truncated inventory is read-only.
+The bridge exposes no arbitrary LiveAPI method, shell, filesystem or network dispatcher. Inventory limits are 64 tracks, 256 devices, 2,048 parameters and 1 MiB for the complete serialized UTF-8 inventory, including its identity and metadata fields. The inventory itself is the HTTP request body; there is no additional HTTP JSON wrapper. Truncated inventory is read-only.
 
 ## Errors and retained history
 
