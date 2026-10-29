@@ -7,12 +7,12 @@ keywords: ["Studio API", "Ableton", "parameter control", "idempotency", "Max bri
 The Studio API exposes the local parameter-control prototype described in the [Studio Agent guide](/integrations/studio-agent). Enable it with `MLX_AUDIOGEN_STUDIO_ENABLED=1`. The base URL is `http://localhost:8420/api/studio`; disabled routes return 404.
 
 <Warning>
-The supplied frozen device passed a bounded Utility edit/inverse and authority-reset check on Live 12.4.15 with Max 9.2.0. Other Live/Max versions and wider musical workflows remain unqualified. Use a disposable, saved working Set. A successful HTTP response can mean a command was queued, not that Live applied it. Confirm the command outcome before proceeding.
+The current frozen bridge connects on Live 12.4.15 with Max 9.2.0, but native qualification of its new unknown-result recovery is pending. Earlier edit/inverse evidence belongs to a different build. Use the current device in Guide mode until native recovery checks pass. Use a disposable, saved working Set. A successful HTTP response can mean a command was queued, not that Live applied it. Confirm the command outcome before proceeding.
 </Warning>
 
 ## Local access
 
-Studio requires a direct loopback connection, a local Host and an allowed browser Origin. It rejects forwarded or tunneled requests, including requests carrying `Forwarded`, `X-Forwarded-For` or `CF-Connecting-IP`.
+Studio requires a direct loopback connection, a local Host and an allowed browser Origin. It rejects proxy metadata such as `Forwarded`, `X-Forwarded-For` or `CF-Connecting-IP`. Do not expose Studio through a proxy or tunnel: stripped forwarding metadata cannot be distinguished from a direct native client.
 
 The default allowed browser origins are `http://localhost:8420`, `http://127.0.0.1:8420`, `http://[::1]:8420`, and the same three hosts on the web-development port `3000`. Matching includes scheme, host and port. Arbitrary localhost ports, `null` origins and wildcards are not accepted. A configured backend port replaces its default server-origin port; the Studio Max device's initial default remains `127.0.0.1:8420`.
 
@@ -40,7 +40,7 @@ Paths below are relative to `/api/studio`.
 | `POST` | `/bridge/poll` | One command or `null`, plus lease settings. |
 | `POST` | `/bridge/results` | Recorded command outcome. |
 
-A session is created when the bridge registers a fresh connection generation, called an **epoch**. There is no separate browser endpoint for creating a session or setting copy confirmation.
+Each fresh connection generation, called an **epoch**, creates a new session ID when the bridge registers. Reconnecting creates a new session rather than changing the epoch inside an existing session. The old session keeps its commands, checkpoints and unknown outcomes. There is no separate browser endpoint for creating a session or setting copy confirmation.
 
 ## Read capabilities and sessions
 
@@ -128,7 +128,14 @@ Only one command may occupy a bridge's mutation slot. The same plan cannot enque
 | `unknown` | The command may have affected Live, but the result is not confirmed. Further writes are blocked. |
 | `observed` | A read-only inspection completed. This does not attribute a previous change. |
 
-Command views include the command ID, target, deadline, status, observed before/after values, reason and related plan/checkpoint identity. Confirmed edits append immutable checkpoints. A checkpoint records one parameter operation, not a saved Set.
+Command views include the command ID, target, deadline, status, observed before/after values, reason and related plan/checkpoint identity. They also include these server-derived inspection fields:
+
+| Field | Meaning |
+|---|---|
+| `inspection_available` | Whether an inspection can currently be queued; not a guarantee that the later read will complete. |
+| `inspection_unavailable_reason` | `null` when available; otherwise `not_unknown_write`, `original_generation_unavailable`, `target_changed` or `command_in_flight`. |
+
+These fields are public views, not persisted command authority or fields accepted in bridge commands. Confirmed edits append immutable checkpoints. A checkpoint records one parameter operation, not a saved Set.
 
 ## Stop a session
 
@@ -138,9 +145,13 @@ Queued commands become rejected with reason `cancelled`. A dispatched command be
 
 ## Inspect an unknown result
 
-Send `POST /sessions/{session_id}/reconcile` with `expected_revision`, the unknown `command_id`, and a new `idempotency_key`. This queues an `inspect_parameter` command for the original target. It does not resend the write.
+Inspect only when the public command view reports `inspection_available: true`. Send `POST /sessions/{session_id}/reconcile` with `expected_revision`, the unknown `command_id`, and a new `idempotency_key`. This queues an `inspect_parameter` command for the original target; it does not resend the write.
 
-The observation does not clear the write block, turn the old result into applied, or create an inverse checkpoint. Recovery requires a new epoch, fresh physical copy confirmation in Max, current inventory, and a new policy/plan. Historical unknown outcomes remain unknown even when a later observation matches the requested value.
+A healthy original connection enters read-only quarantine after an unknown write. Node and Live independently refuse parameter writes, clear copy confirmation and complete a bounded quarantine handshake before forwarding another command. An inspection can queue while that handshake is pending. The service checks the original target's structural identity and may use a newer inventory sequence from the same epoch; the current numeric value may differ.
+
+Stop, handshake failure, hard disconnect or reload disarms the original generation. Inspection then becomes unavailable. A fresh generation cannot map old target IDs into its own session or inspect an old command through `/reconcile`.
+
+An observation never clears the write block, turns the old result into `applied`, or creates an inverse checkpoint. Mode changes, refreshed inventory, physical confirmation and matching values cannot rearm quarantine. Any later write requires reconnecting into a new epoch and session ID, fresh physical copy confirmation in Max, current inventory, and a new policy and plan. Historical unknown outcomes remain unknown in the old session.
 
 ## Restore a confirmed checkpoint
 
@@ -154,9 +165,10 @@ Use the supplied Max/Node bridge for Live control. A custom bridge must preserve
 
 - Registration sends a bounded inventory and an ephemeral credential. A fresh epoch starts in Guide with edits denied. Copy confirmation comes from the Max device, not a browser request.
 - Inventory has an increasing `sequence`, `is_playing`, `copy_confirmed`, `truncated`, and nested normal-track/top-level-device/parameter observations. Publishing changed inventory advances the revision and invalidates plans.
-- Polling renews the lease. A queued command is durably marked dispatched before it is returned and is never blindly redelivered.
+- Polling renews an existing lease; it does not recreate expired authority. A queued command is durably marked dispatched before it is returned and is never blindly redelivered. A poll response has required boolean `read_only`: healthy quarantine returns `read_only: true` with `disarm: false` and only inspection commands. `disarm: true` takes precedence and requires a full reset.
 - Results identify the bridge, epoch and command, with status, finite readback values and a fixed reason code. Identical acknowledgement retries are safe; conflicting results are rejected.
-- Reload or reconnect rotates the epoch and clears confirmation. The bridge rejects callbacks from an earlier epoch and deduplicates command execution within its current epoch.
+- A locally unknown result or a service acknowledgement recording `unknown` immediately latches write refusal in both endpoints. The matching `quarantine(epoch, nonce)` / `quarantine_ready(epoch, nonce)` handshake must finish within three seconds before another command is forwarded. Invalid, mismatched or missing acknowledgement fully resets the bridge. Result acknowledgements remain exactly `id`, `epoch`, `status` and `reason`.
+- Reload or reconnect rotates the epoch, creates a new session ID and clears confirmation. The bridge rejects callbacks from an earlier epoch and deduplicates command execution within its current epoch. A Node-only restart requires full device reload.
 - A failed write or failed readback is unknown unless the bridge can establish that no write occurred. It cannot report rejection merely because an acknowledgement was lost.
 
 The bridge exposes no arbitrary LiveAPI method, shell, filesystem or network dispatcher. Inventory limits are 64 tracks, 256 devices, 2,048 parameters and 1 MiB. Truncated inventory is read-only.
@@ -179,9 +191,9 @@ Errors use this envelope:
 | 400 / 413 / 422 | Malformed, oversized or unsupported input | Correct the request; do not widen target scope. |
 | 403 | Local-access, permission, copy-confirmation or approval failure | Restore the required authority through its normal UI. |
 | 404 | Feature disabled or object not found | Check enablement and the current session ID. |
-| 409 | Stale revision/plan, conflicting replay, busy bridge or unknown result | Refresh state; unknown outcomes require reconnect and re-enrollment. |
+| 409 | Stale revision/plan, conflicting replay, busy bridge or unknown result | Refresh state; inspect an unknown outcome only while available, then reconnect and re-enroll before any later write. |
 | 429 | Action/time/history budget unavailable | Inspect limits; do not retry a dispatched action. |
-| 503 | Bridge offline | Reconnect in Max and inspect historical outcomes. |
+| 503 | Bridge offline | Reconnect in Max to create a fresh session. Historical outcomes remain in their old sessions; inspection of an ended generation is unavailable. |
 
 History is limited to 500 logical journal entries or 16 MiB of canonical history per session. Admission reserves capacity for the command's complete outcome and recovery records before dispatch. Later evidence uses that reservation; old history is not silently evicted. The limit excludes SQLite page and journal-file overhead.
 

@@ -8,7 +8,7 @@ keywords: ["Studio Agent", "Ableton Live", "Max for Live", "Utility", "local con
 Studio Agent connects the web UI to a live Ableton Set through a separate Max for Live bridge. You choose an existing Utility parameter and a numeric target, preview the change, then authorize one operation. The bridge checks the target again and reports the value it reads back from Live.
 
 <Warning>
-Studio Agent is an opt-in prototype. The supplied frozen device was qualified with Ableton Live 12.4.15 and Max 9.2.0 on a disposable Set: inventory, one Utility Balance edit, conditional inverse, reconnect and full Set reload. Start with a disposable, saved working copy. The bridge does not create a backup, save a copy, or verify that your original Set is protected.
+Studio Agent is an opt-in prototype. The current frozen bridge connects with Live 12.4.15 and Max 9.2.0, but its new unknown-result recovery behavior still needs native qualification. Earlier edit/inverse checks belong to a previous build and do not qualify this device. Keep the current build in **Guide** mode until that check passes. Start with a disposable, saved working copy; the bridge does not create a backup, save a copy, or verify that your original Set is protected.
 </Warning>
 
 ## What you can control
@@ -21,7 +21,7 @@ Each plan contains one parameter change, with a runtime limit of 5–120 seconds
 
 ## Start Studio locally
 
-You need Apple Silicon macOS, Ableton Live with Max for Live, and a checkout of mlx-audiogen that includes the Studio prototype. Follow [installation](/installation) for the repository prerequisites.
+You need Apple Silicon macOS, Ableton Live with Max for Live, and a source checkout of mlx-audiogen that includes the Studio prototype. Build the web UI from that same checkout; a packaged application or older UI may not include Studio. Follow [installation](/installation) for the repository prerequisites.
 
 <Steps>
   <Step title="Install the server dependencies and build the web UI">
@@ -42,30 +42,30 @@ You need Apple Silicon macOS, Ableton Live with Max for Live, and a checkout of 
       --host 127.0.0.1 --port 8420
     ```
 
-    Open `http://localhost:8420` and select **Studio**. The Max bridge uses `127.0.0.1:8420`; keep that port for this setup. Studio endpoints are unavailable unless the enablement variable is exactly `1`.
+    Open `http://localhost:8420` and select the **Studio** tab. The Max bridge uses `127.0.0.1:8420`; keep that port for this setup. Studio endpoints are unavailable unless the enablement variable is exactly `1`.
 
     If you already use the normal application launcher, set the same variable before starting it. Studio itself does not load models; the normal launcher can still preload your configured generation models.
   </Step>
 
   <Step title="Load the supplied frozen Studio device">
-    Load `m4l/studio-agent.amxd` onto a normal audio track. This genuine Max Audio Effect includes both JavaScript dependencies. It is separate from the existing audio-generation device.
+    Load `m4l/studio-agent.amxd` onto a normal audio track. This genuine frozen Max Audio Effect includes both JavaScript dependencies and is separate from the existing audio-generation device. Current native recovery qualification is pending; use it for Guide inspection only until that gate passes.
 
     Editable sources are also supplied in `m4l/studio-agent.maxproj`. After changing bridge code, rebuild and freeze the device in Max, save it, and repeat disposable-Set qualification before using it.
   </Step>
 
   <Step title="Prepare and connect a working copy">
-    Save a separate working copy of your Set in Live and open that copy. Pause the transport, add Utility to a normal track, and load the exported Studio Audio Effect.
+    Save a separate working copy of your Set in Live and open that copy. Pause the transport, add **Utility** to a normal track, and load the exported Studio Audio Effect.
 
-    The device connects to local port `8420` by default. For another backend port, set **Local server port** at the bottom of the Studio device in Live; this control is not in Live Settings. Native qualification used isolated port `8429`.
+    The device connects to local port `8420` by default. For another backend port, set **Local server port** at the bottom of the Studio device in Live; this control is not in Live Settings. Use the same port for the backend and the device.
 
     Once connected, click **Confirm this is a saved working copy**. This is your assertion about the open Set, not a filesystem check or a backup operation.
 
-    Use **Refresh inventory** after changing the Set's devices or controls. Reloading the device or reconnecting clears confirmation and makes earlier plans invalid. A full reload also restores the default port; select your test port again before reconnecting.
+    Use **Refresh inventory** after changing the Set's devices or controls. Reloading the device or reconnecting clears confirmation and makes earlier plans invalid. A full reload also restores the default port; select your configured port again before reconnecting.
   </Step>
 </Steps>
 
 <Note>
-Studio is local-only even if other mlx-audiogen features use a remote server. A tunnel, proxy or another machine cannot control the bridge. For web development, the repository's Vite server uses port `3000`; the backend and bridge still use `8420`.
+Studio is local-only even if other mlx-audiogen features use a remote server. Use a direct local connection; do not expose Studio through a tunnel or proxy. For web development, the repository's Vite server uses port `3000`; the backend and bridge still use `8420`.
 </Note>
 
 ## Preview and apply a change
@@ -93,15 +93,18 @@ All writing modes require a confirmed working copy, a supported target, an expli
 
 **Stop** prevents a queued command from being sent. If the bridge already received the command, stopping cannot prove that Live remained unchanged: the outcome becomes **unknown**. Stop does not undo a change.
 
-A lost acknowledgement, disconnect, timeout or interrupted write can also leave an unknown outcome. Studio retains that history and blocks further writes. Even if the parameter now equals the requested value, that does not prove which action changed it.
+A lost acknowledgement, disconnect, timeout or interrupted write can leave an unknown outcome. Studio retains that history and blocks further writes. If the original connection is still healthy, the bridge enters a read-only quarantine: **Inspect current value** can read the original control when the UI marks inspection available. That observation does not confirm the uncertain edit, create a checkpoint, or restore permission to write, even when the value matches the requested value. Confirming the working copy again cannot unlock that connection.
+
+Stop, a failed quarantine handshake, a hard disconnect, or a Set/device reload ends the original connection. Inspection of that historical command then becomes unavailable; a new connection cannot reuse its old object IDs. The UI explains why inspection is unavailable instead of offering a write retry.
 
 To recover:
 
-1. Inspect the parameter and decide what state you want to keep. A read-only reconciliation can record an observation; it does not clear the write block.
-2. In Max, click **Reconnect / disarm** to establish a fresh connection generation.
-3. If Node alone restarted, reload the entire Studio device first. Confirm the saved working copy again, refresh inventory, and choose fresh permissions and a new plan in Studio.
+1. If inspection is available, inspect the original control and decide what state you want to keep. If it is unavailable, inspect the current state directly in Live. Neither step clears the old unknown result.
+2. If Node alone restarted, reload the entire Studio device before reconnecting. A full reload resets **Local server port** to `8420`; select your configured port again when needed.
+3. In Max, click **Reconnect / disarm** to establish a fresh connection generation. It creates a new Studio session ID for the connection, not a new saved Live Set. Select that connected record in the **Ableton session** control. The old session retains its history.
+4. Confirm the saved working copy again on the Max device, refresh inventory, then save fresh permissions and create a new plan in Studio. This step is required for every recovery, whether or not Node restarted.
 
-The old unknown result remains in history. Studio never automatically retries an uncertain write.
+Studio never automatically retries an uncertain write. Old unknown outcomes remain unknown in their original sessions.
 
 ## Restore a confirmed edit
 
@@ -118,11 +121,11 @@ Studio stores its operation history in `~/.mlx-audiogen/studio.sqlite3`. Set `ML
 | Symptom | Next step |
 |---|---|
 | Studio is unavailable or its API returns 404 | Restart the backend with `MLX_AUDIOGEN_STUDIO_ENABLED=1` using a version that includes Studio. |
-| No connected session | Check that the exported device is loaded and the backend is listening on `127.0.0.1:8420`. |
+| No connected session | Check that the device is loaded and the backend listens on `127.0.0.1` at the port set in **Local server port** (default `8420`). After a full reload, select your configured port again. |
 | Editing is disabled | Pause transport; confirm the copy on Max; enable edits; select an enabled, continuous, non-automated Utility parameter. |
 | Inventory is incomplete | Reduce the working Set to a smaller supported fixture and refresh. Caps are 64 tracks, 256 devices, 2,048 parameters and 1 MiB per inventory. |
 | Preview is stale | Refresh the session and create a new preview. |
-| Outcome is unknown | Inspect, reconnect/disarm, then confirm and plan again. Do not replay the old command. |
-| Session history is full | Begin a fresh connection generation. Existing history is retained; the journal limit is 500 entries or 16 MiB of logical history per session. |
+| Outcome is unknown | Inspect only while the original connection is available; then follow the recovery steps above. Reconfirmation alone cannot unlock quarantine. Do not replay the old command. |
+| Session history is full | Reconnect to create a new session ID, select it in Studio, and complete fresh enrollment. The old session retains its history; the logical limit is 500 entries or 16 MiB per session. |
 
 For request formats and client integration rules, see the [Studio API](/api/studio).
