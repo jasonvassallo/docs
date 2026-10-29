@@ -1,21 +1,7 @@
-# CodeRabbit review gating (docs.coderabbit.ai/reference/configuration).
-#
-# Automatic reviews are OFF — and on the FREE plan that costs nothing, because the
-# GitHub app cannot post code reviews on Free at all. Free is "PR summarization
-# only" (1 summary/hour); the on-demand "@coderabbitai review" chat command is a
-# Pro feature and silently does nothing. Verified 2026-07-26 on
-# mlx-omni-signal#17: enabling auto_review produced a walkthrough and ZERO
-# findings/inline comments.
-#
-# Real CodeRabbit reviews on this plan come from the CLI (3/hour), which the
-# Tier-2 pre-PR step already runs:
-#     coderabbit review --agent --type uncommitted
-# GitHub-side review coverage is Greptile + Claude + Codex + Semgrep.
-#
-# If this account ever moves to Pro, flip enabled to true and KEEP the "!trivial"
-# exclusion so the fleet's opt-out tier still applies.
+# One hosted review per non-trivial PR; later pushes require an explicit request.
 reviews:
   auto_review:
-    enabled: false
+    enabled: true
+    auto_incremental_review: false
     labels:
       - "!trivial"

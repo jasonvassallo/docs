@@ -1,0 +1,128 @@
+---
+title: "Control an Ableton parameter with Studio Agent"
+sidebarTitle: "Studio Agent"
+description: "Connect a saved Ableton working copy, preview one Utility parameter change, and use explicit permissions and conditional restoration."
+keywords: ["Studio Agent", "Ableton Live", "Max for Live", "Utility", "local control"]
+---
+
+Studio Agent connects the web UI to a live Ableton Set through a separate Max for Live bridge. You choose an existing Utility parameter and a numeric target, preview the change, then authorize one operation. The bridge checks the target again and reports the value it reads back from Live.
+
+<Warning>
+Studio Agent is an opt-in prototype. Native Live qualification and genuine `.amxd` export are still pending. The setup below is provisional until both are verified. Start with a disposable, saved working copy. The bridge does not create a backup, save a copy, or verify that your original Set is protected.
+</Warning>
+
+## What you can control
+
+The first version supports enabled, continuous, non-automated controls on Ableton's **Utility** device (`StereoGain` in the Live API). Parameters, values and ranges come from the connected device. Keep Live's transport paused while planning or applying changes.
+
+Inventory covers normal tracks and their top-level devices. Other device classes are read-only. Clips, devices inside racks, return tracks, the master track, third-party plugins and hardware control are outside this version. An incomplete inventory disables editing.
+
+Each plan contains one parameter change, with a runtime limit of 5–120 seconds. The default is 60 seconds. Readback confirms a numeric result; it does not judge the sound or interpret an instruction such as “make this warmer.” Studio does not call a local or cloud model, download weights, render audio, or create an audio A/B comparison.
+
+## Start Studio locally
+
+You need Apple Silicon macOS, Ableton Live with Max for Live, and a checkout of mlx-audiogen that includes the Studio prototype. Follow [installation](/installation) for the repository prerequisites.
+
+<Steps>
+  <Step title="Install the server dependencies and build the web UI">
+    From the mlx-audiogen repository:
+
+    ```bash
+    uv sync --extra server
+    npm --prefix web ci
+    npm --prefix web run build
+    ```
+  </Step>
+
+  <Step title="Enable Studio and start the server">
+    This Studio-only command starts the local service without preloading generation weights:
+
+    ```bash
+    MLX_AUDIOGEN_STUDIO_ENABLED=1 uv run uvicorn mlx_audiogen.server.app:app \
+      --host 127.0.0.1 --port 8420
+    ```
+
+    Open `http://localhost:8420` and select **Studio**. The Max bridge uses `127.0.0.1:8420`; keep that port for this setup. Studio endpoints are unavailable unless the enablement variable is exactly `1`.
+
+    If you already use the normal application launcher, set the same variable before starting it. Studio itself does not load models; the normal launcher can still preload your configured generation models.
+  </Step>
+
+  <Step title="Prepare the bridge sources; native packaging is pending">
+    The repository includes `m4l/studio-agent.maxproj`, `studio-agent.maxpat`, `studio-agent-live.js` and `studio-agent-node.js`. These are source files, not a qualified Max for Live device.
+
+    A genuine Audio Effect `.amxd` with both JavaScript dependencies included is required before you continue. Its native export and freeze procedure has not been verified; **Export Max for Live Device** was unavailable during the current qualification attempt. Changing the `.maxpat` filename to `.amxd` does not build a device.
+
+    Continue to the connection steps only after native packaging, CPU-clock readiness and copied-Set qualification have been completed for the current sources. The existing audio-generation device uses a different script and cannot substitute for the Studio bridge.
+  </Step>
+
+  <Step title="Prepare and connect a working copy">
+    Save a separate working copy of your Set in Live and open that copy. Pause the transport, add Utility to a normal track, and load the exported Studio Audio Effect.
+
+    The device connects automatically. In the device, click **Confirm this is a saved working copy**. This is your assertion about the open Set, not a filesystem check or a backup operation.
+
+    Use **Refresh inventory** after changing the Set's devices or controls. Reloading the device or reconnecting clears confirmation and makes earlier plans invalid.
+  </Step>
+</Steps>
+
+<Note>
+Studio is local-only even if other mlx-audiogen features use a remote server. A tunnel, proxy or another machine cannot control the bridge. For web development, the repository's Vite server uses port `3000`; the backend and bridge still use `8420`.
+</Note>
+
+## Preview and apply a change
+
+1. Select the connected **Ableton session** in **Studio**. Check that the bridge is connected, the working copy is confirmed, and transport is paused.
+2. Choose an **Interaction mode**, enable **Allow parameter edits** when you want to write, set the **Runtime limit**, and save the settings.
+3. Select a track, its Utility device, and a supported parameter. Enter a **Target value** within the displayed range. These are Live's native parameter units, which may differ from the unit shown on a device dial.
+4. Create a preview and check the exact target and old/new values. In Collaborate mode, approve that preview before executing it.
+5. Read the result in the operation history. **Applied** means the bridge returned a matching command acknowledgement and readback. A queued or dispatched command is not yet a confirmed edit.
+
+Changing the mode, permissions, inventory or target can invalidate a preview. Refresh the session and create a new plan instead of reusing an earlier approval.
+
+## Choose an interaction mode
+
+| Mode | Behavior in this prototype |
+|---|---|
+| **Guide** | Inspect the Set and preview a parameter goal. Cannot write. |
+| **Collaborate** | Apply one permitted change after you approve its exact preview. |
+| **Agent** | Execute your selected numeric goal within the saved permissions and runtime limit. |
+| **Full Auto** | Use the same bounded executor for the selected one-action goal. Does not add permissions or broader musical planning. |
+
+All writing modes require a confirmed working copy, a supported target, an explicit edit permission, fresh state and a paused transport. Selecting Full Auto does not grant any of those permissions.
+
+## Stop and recover
+
+**Stop** prevents a queued command from being sent. If the bridge already received the command, stopping cannot prove that Live remained unchanged: the outcome becomes **unknown**. Stop does not undo a change.
+
+A lost acknowledgement, disconnect, timeout or interrupted write can also leave an unknown outcome. Studio retains that history and blocks further writes. Even if the parameter now equals the requested value, that does not prove which action changed it.
+
+To recover:
+
+1. Inspect the parameter and decide what state you want to keep. A read-only reconciliation can record an observation; it does not clear the write block.
+2. In Max, click **Reconnect / disarm** to establish a fresh connection generation.
+3. Confirm the saved working copy again, refresh inventory, and choose fresh permissions and a new plan in Studio.
+
+The old unknown result remains in history. Studio never automatically retries an uncertain write.
+
+## Restore a confirmed edit
+
+For an eligible confirmed checkpoint, request a restore preview. It proposes a new inverse operation through the same permission and approval checks.
+
+The inverse expects the parameter to match the value acknowledged after the original edit. If Studio detects a changed target or an intervening value change, it refuses restoration. It never calls Live's global Undo command. Live does not provide an atomic comparison-and-write against simultaneous human edits, so avoid adjusting the target while an operation is in flight.
+
+A checkpoint records a parameter operation. It is not a saved Live Set or a complete project snapshot, and an unknown operation has no automatic inverse.
+
+## Storage and troubleshooting
+
+Studio stores its operation history in `~/.mlx-audiogen/studio.sqlite3`. Set `MLX_AUDIOGEN_STUDIO_DB` before startup if you need a different database location. The bridge credential stays in memory and is not a user-managed API key.
+
+| Symptom | Next step |
+|---|---|
+| Studio is unavailable or its API returns 404 | Restart the backend with `MLX_AUDIOGEN_STUDIO_ENABLED=1` using a version that includes Studio. |
+| No connected session | Check that the exported device is loaded and the backend is listening on `127.0.0.1:8420`. |
+| Editing is disabled | Pause transport; confirm the copy on Max; enable edits; select an enabled, continuous, non-automated Utility parameter. |
+| Inventory is incomplete | Reduce the working Set to a smaller supported fixture and refresh. Caps are 64 tracks, 256 devices, 2,048 parameters and 1 MiB per inventory. |
+| Preview is stale | Refresh the session and create a new preview. |
+| Outcome is unknown | Inspect, reconnect/disarm, then confirm and plan again. Do not replay the old command. |
+| Session history is full | Begin a fresh connection generation. Existing history is retained; the journal limit is 500 entries or 16 MiB of logical history per session. |
+
+For request formats and client integration rules, see the [Studio API](/api/studio).

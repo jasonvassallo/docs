@@ -1,0 +1,188 @@
+---
+title: "Studio Agent API"
+description: "Inspect local Ableton sessions, create parameter plans, execute approved changes, and handle durable outcomes through the opt-in Studio API."
+keywords: ["Studio API", "Ableton", "parameter control", "idempotency", "Max bridge"]
+---
+
+The Studio API exposes the local parameter-control prototype described in the [Studio Agent guide](/integrations/studio-agent). Enable it with `MLX_AUDIOGEN_STUDIO_ENABLED=1`. The base URL is `http://localhost:8420/api/studio`; disabled routes return 404.
+
+<Warning>
+Native Live qualification is still in progress. Use a disposable, saved working Set. A successful HTTP response can mean a command was queued, not that Live applied it. Confirm the command outcome before proceeding.
+</Warning>
+
+## Local access
+
+Studio requires a direct loopback connection, a local Host and an allowed browser Origin. It rejects forwarded or tunneled requests, including requests carrying `Forwarded`, `X-Forwarded-For` or `CF-Connecting-IP`.
+
+The default allowed browser origins are `http://localhost:8420`, `http://127.0.0.1:8420`, `http://[::1]:8420`, and the same three hosts on the web-development port `3000`. Matching includes scheme, host and port. Arbitrary localhost ports, `null` origins and wildcards are not accepted. A configured backend port replaces its default server-origin port; the Studio Max device's initial default remains `127.0.0.1:8420`.
+
+Native clients can omit Origin. Bridge routes additionally require an in-memory `X-Studio-Bridge-Key` and reject browser Origin headers. The supplied Node bridge manages that credential; never put it in a URL, saved settings, source code or logs.
+
+Send JSON with `Content-Type: application/json`. Requests reject unknown fields, nonfinite numbers and bodies larger than 1 MiB. UUIDs use lowercase hyphenated form; Live object IDs are decimal strings. Errors contain safe codes and messages, without filesystem paths or credentials.
+
+## Endpoint index
+
+Paths below are relative to `/api/studio`.
+
+| Method | Path | Result |
+|---|---|---|
+| `GET` | `/capabilities` | Supported modes, actions, editable device classes and limits. |
+| `GET` | `/sessions` | Session summaries, including connection and copy-confirmation state. |
+| `GET` | `/sessions/{session_id}` | Session detail, inventory, plans, commands and checkpoints. |
+| `PATCH` | `/sessions/{session_id}` | Updated mode, permission and budget. |
+| `POST` | `/sessions/{session_id}/plans` | Immutable numeric parameter plan. |
+| `POST` | `/sessions/{session_id}/execute` | HTTP 202 and a command admitted for execution. |
+| `POST` | `/sessions/{session_id}/rollback` | Inverse plan for an eligible confirmed checkpoint. |
+| `POST` | `/sessions/{session_id}/stop` | Updated session; queued work stops, dispatched work becomes unknown. |
+| `POST` | `/sessions/{session_id}/reconcile` | HTTP 202 and a read-only inspection command. |
+| `POST` | `/bridge/register` | Session identity and bridge lease/poll settings. |
+| `POST` | `/bridge/inventory` | Accepted inventory revision. |
+| `POST` | `/bridge/poll` | One command or `null`, plus lease settings. |
+| `POST` | `/bridge/results` | Recorded command outcome. |
+
+A session is created when the bridge registers a fresh connection generation, called an **epoch**. There is no separate browser endpoint for creating a session or setting copy confirmation.
+
+## Read capabilities and sessions
+
+```bash
+curl http://localhost:8420/api/studio/capabilities
+curl http://localhost:8420/api/studio/sessions
+```
+
+Capabilities identify the planner as `deterministic_parameter_v1`, advertise all four modes, and limit editable device classes to `StereoGain` (Utility). A plan has one action; its runtime cannot exceed 120 seconds. Automatic save-copy, rendering and cloud inference are unavailable.
+
+Session detail includes:
+
+| Field | Meaning |
+|---|---|
+| `id`, `bridge_id`, `epoch` | Current session and connection identities. |
+| `revision` | Integer starting at one; use it in modifying requests. |
+| `mode`, `policy`, `budget` | Saved authority and limits. |
+| `bridge_connected`, `copy_confirmed`, `blocked_reason` | Whether live action is currently eligible. |
+| `inventory` | Observed tracks, devices, parameters and transport state. |
+| `plans`, `commands`, `checkpoints` | Retained proposals, outcomes and confirmed parameter history. |
+
+An offline session can still have historical inventory. Stored data does not re-establish a live connection or copy confirmation after a restart.
+
+## Set mode, permission and budget
+
+Send all configuration fields to `PATCH /sessions/{session_id}`:
+
+```json
+{
+  "expected_revision": 1,
+  "mode": "collaborate",
+  "policy": { "allow_parameter_edits": true },
+  "budget": { "max_actions": 1, "max_runtime_seconds": 60 }
+}
+```
+
+`mode` is `guide`, `collaborate`, `agent` or `full_auto`. `max_actions` must be `1`; `max_runtime_seconds` is an integer from 5 through 120. The update advances the revision and invalidates earlier plans. Updates cannot bypass an unknown outcome or alter policy while a command is queued or dispatched.
+
+Guide never writes. Collaborate requires approval of the exact plan. Agent and Full Auto can execute the selected one-action numeric goal without a separate approval digest, but still require the edit capability, current Max-side copy confirmation, supported target, paused transport and available budget.
+
+## Create a parameter plan
+
+Send `POST /sessions/{session_id}/plans` with the current revision and IDs from that session's inventory:
+
+```json
+{
+  "expected_revision": 2,
+  "objective": "Try a lower value on the selected Utility control.",
+  "track_id": "12",
+  "device_id": "43",
+  "parameter_id": "44",
+  "value": 0.65
+}
+```
+
+The IDs and value above are illustrative. Use the discovered parameter's actual range and native units; do not infer a parameter mapping from its position or from this example. `objective` is a note, not an instruction interpreted by a musical planning model.
+
+The returned plan includes `id`, `digest`, `base_revision`, `epoch`, `inventory_sequence`, `policy_digest`, `target`, `expected_value`, `value`, `kind`, `rollback_of` and an explanation. The server derives target identity and metadata from inventory. A request cannot supply arbitrary executable metadata.
+
+The plan binds its exact target, values, current authority and context. Numeric comparisons use `target.value_tolerance`, calculated as `max(1e-7, 1e-6 × parameter_range)`. Identity and metadata comparisons remain exact. Planning rejects unsupported targets, out-of-range values and no-op changes.
+
+## Execute an approved plan
+
+Send `POST /sessions/{session_id}/execute`:
+
+| Field | Value |
+|---|---|
+| `expected_revision` | Current revision matching the plan's context. |
+| `plan_id` | The returned plan UUID. |
+| `idempotency_key` | A new UUID for this request. Preserve it for an identical retry. |
+| `approval_digest` | In Collaborate, the exact returned digest after the user approves that preview. Otherwise omit or use `null`. |
+
+The response is HTTP 202 with a command. Poll `GET /sessions/{session_id}` to observe its outcome. Do not equate HTTP 202 with an applied edit.
+
+Only one command may occupy a bridge's mutation slot. The same plan cannot enqueue a second operation under a different request key. Repeating the same request key and payload returns its original operation; changing the payload under that key produces a conflict.
+
+## Command states
+
+| Status | Meaning |
+|---|---|
+| `queued` | Durable intent exists; the bridge has not received the command. |
+| `dispatched` | The command was handed to the bridge; its effect is not yet confirmed. |
+| `applied` | Matching command acknowledgement and pre/post readback were recorded. |
+| `rejected` | The command did not write; inspect its reason, such as `cancelled` or a changed target. |
+| `unknown` | The command may have affected Live, but the result is not confirmed. Further writes are blocked. |
+| `observed` | A read-only inspection completed. This does not attribute a previous change. |
+
+Command views include the command ID, target, deadline, status, observed before/after values, reason and related plan/checkpoint identity. Confirmed edits append immutable checkpoints. A checkpoint records one parameter operation, not a saved Set.
+
+## Stop a session
+
+Send `POST /sessions/{session_id}/stop` with `expected_revision` and a new `idempotency_key`. The response is the updated session.
+
+Queued commands become rejected with reason `cancelled`. A dispatched command becomes unknown because stop cannot prove that Live has not already changed. The session is disarmed; use the Max device's reconnect flow before granting fresh authority. Stop never invokes global Undo.
+
+## Inspect an unknown result
+
+Send `POST /sessions/{session_id}/reconcile` with `expected_revision`, the unknown `command_id`, and a new `idempotency_key`. This queues an `inspect_parameter` command for the original target. It does not resend the write.
+
+The observation does not clear the write block, turn the old result into applied, or create an inverse checkpoint. Recovery requires a new epoch, fresh physical copy confirmation in Max, current inventory, and a new policy/plan. Historical unknown outcomes remain unknown even when a later observation matches the requested value.
+
+## Restore a confirmed checkpoint
+
+Send `POST /sessions/{session_id}/rollback` with `expected_revision` and `checkpoint_id`. It returns a plan; it does not write immediately. Execute that inverse through the normal approval and permission checks.
+
+Only the latest eligible confirmed checkpoint in the current epoch can be inverted. Its expected value is the acknowledged post-edit value, and its requested value is the recorded pre-edit value. Detected target or value interference prevents restoration. An inverse appends history rather than deleting the original checkpoint.
+
+## Bridge protocol
+
+Use the supplied Max/Node bridge for Live control. A custom bridge must preserve these boundaries:
+
+- Registration sends a bounded inventory and an ephemeral credential. A fresh epoch starts in Guide with edits denied. Copy confirmation comes from the Max device, not a browser request.
+- Inventory has an increasing `sequence`, `is_playing`, `copy_confirmed`, `truncated`, and nested normal-track/top-level-device/parameter observations. Publishing changed inventory advances the revision and invalidates plans.
+- Polling renews the lease. A queued command is durably marked dispatched before it is returned and is never blindly redelivered.
+- Results identify the bridge, epoch and command, with status, finite readback values and a fixed reason code. Identical acknowledgement retries are safe; conflicting results are rejected.
+- Reload or reconnect rotates the epoch and clears confirmation. The bridge rejects callbacks from an earlier epoch and deduplicates command execution within its current epoch.
+- A failed write or failed readback is unknown unless the bridge can establish that no write occurred. It cannot report rejection merely because an acknowledgement was lost.
+
+The bridge exposes no arbitrary LiveAPI method, shell, filesystem or network dispatcher. Inventory limits are 64 tracks, 256 devices, 2,048 parameters and 1 MiB. Truncated inventory is read-only.
+
+## Errors and retained history
+
+Errors use this envelope:
+
+```json
+{
+  "error": {
+    "code": "stale_revision",
+    "message": "Refresh the session before continuing."
+  }
+}
+```
+
+| Status | Common cause | Client response |
+|---|---|---|
+| 400 / 413 / 422 | Malformed, oversized or unsupported input | Correct the request; do not widen target scope. |
+| 403 | Local-access, permission, copy-confirmation or approval failure | Restore the required authority through its normal UI. |
+| 404 | Feature disabled or object not found | Check enablement and the current session ID. |
+| 409 | Stale revision/plan, conflicting replay, busy bridge or unknown result | Refresh state; unknown outcomes require reconnect and re-enrollment. |
+| 429 | Action/time/history budget unavailable | Inspect limits; do not retry a dispatched action. |
+| 503 | Bridge offline | Reconnect in Max and inspect historical outcomes. |
+
+History is limited to 500 logical journal entries or 16 MiB of canonical history per session. Admission reserves capacity for the command's complete outcome and recovery records before dispatch. Later evidence uses that reservation; old history is not silently evicted. The limit excludes SQLite page and journal-file overhead.
+
+After a server restart, queued commands are rejected and dispatched commands become unknown. No live lease, credential or copy confirmation survives, and pending work never resumes automatically.

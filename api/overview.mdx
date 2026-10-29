@@ -26,6 +26,8 @@ The `/docs` path is reserved for this user documentation site, so Swagger UI liv
 
 No authentication is required for local use. CORS is enabled for all origins, so browser-based clients (including the bundled web UI and Max for Live) can call the API directly.
 
+The opt-in [Studio API](/api/studio) has separate restrictions: direct loopback access, exact local browser origins, and an ephemeral credential for bridge requests. Its control endpoints are unavailable through remote connections or tunnels.
+
 <Warning>
 If you expose the server on `0.0.0.0` for remote access, the API has no built-in authentication. Use a reverse proxy with auth, or rely on network-level controls, before exposing the server externally.
 </Warning>
@@ -101,6 +103,7 @@ A single background worker processes one job at a time (MLX is GPU-bound on Appl
 | `POST` | `/api/library/analyze` | Start a background acoustic-analysis sweep of a scanned source (for Find Similar) |
 | `GET` | `/api/library/analyze/status/{source_id}` | Poll the progress of a source's analysis sweep |
 | `GET` | `/api/library/similar/{track_id}` | Find acoustically similar tracks to a given track (`source_id` required) |
+| Various | `/api/studio/*` | Opt-in local Ableton inventory, parameter plans and command outcomes; see the [Studio API](/api/studio) |
 
 ## End-to-end example
 
