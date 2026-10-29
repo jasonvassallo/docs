@@ -42,7 +42,7 @@ You need Apple Silicon macOS, Ableton Live with Max for Live, and a source check
       --host 127.0.0.1 --port 8420
     ```
 
-    Open `http://localhost:8420` and select the **Studio** tab. The Max bridge uses `127.0.0.1:8420`; keep that port for this setup. Studio endpoints are unavailable unless the enablement variable is exactly `1`.
+    Open `http://localhost:8420` and select the **Studio** tab. The Max device defaults to `127.0.0.1:8420`; if you use another backend port, set the same port on the device as described below. Studio endpoints are unavailable unless the enablement variable is exactly `1`.
 
     If you already use the normal application launcher, set the same variable before starting it. Studio itself does not load models; the normal launcher can still preload your configured generation models.
   </Step>
@@ -54,7 +54,7 @@ You need Apple Silicon macOS, Ableton Live with Max for Live, and a source check
   </Step>
 
   <Step title="Prepare and connect a working copy">
-    Save a separate working copy of your Set in Live and open that copy. Pause the transport, add **Utility** to a normal track, and load the exported Studio Audio Effect.
+    Save a separate working copy of your Set in Live and open that copy. Pause the transport, add **Utility** to a normal track, and load the supplied Studio device (`m4l/studio-agent.amxd`).
 
     The device connects to local port `8420` by default. For another backend port, set **Local server port** at the bottom of the Studio device in Live; this control is not in Live Settings. Use the same port for the backend and the device.
 
@@ -108,7 +108,7 @@ Studio never automatically retries an uncertain write. Old unknown outcomes rema
 
 ## Restore a confirmed edit
 
-For an eligible confirmed checkpoint, request a restore preview. It proposes a new inverse operation through the same permission and approval checks.
+For an eligible confirmed checkpoint in the current connection, request a restore preview. It proposes a new inverse operation through the same permission and approval checks. Reconnecting creates a new session: earlier checkpoints remain history-only and cannot be restored through that new connection.
 
 The inverse expects the parameter to match the value acknowledged after the original edit. If Studio detects a changed target or an intervening value change, it refuses restoration. It never calls Live's global Undo command. Live does not provide an atomic comparison-and-write against simultaneous human edits, so avoid adjusting the target while an operation is in flight.
 
