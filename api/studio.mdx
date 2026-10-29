@@ -1,13 +1,13 @@
 ---
 title: "Studio Agent API"
-description: "Inspect local Ableton sessions, create parameter plans, execute approved changes, and handle durable outcomes through the opt-in Studio API."
+description: "Use the opt-in local Studio APIs for guarded Live parameter plans and capability-gated copied-audio workspaces, candidates, comparisons and selection."
 keywords: ["Studio API", "Ableton", "parameter control", "idempotency", "Max bridge"]
 ---
 
-The Studio API exposes the local parameter-control prototype described in the [Studio Agent guide](/integrations/studio-agent). Enable it with `MLX_AUDIOGEN_STUDIO_ENABLED=1`. The base URL is `http://localhost:8420/api/studio`; disabled routes return 404.
+The Studio API exposes the source-checkout prototype described in the [Studio Agent guide](/integrations/studio-agent). Live parameter control uses `http://localhost:8420/api/studio`; independent copied-audio workspaces use `/api/studio/audio` on that same backend. Enable Studio with `MLX_AUDIOGEN_STUDIO_ENABLED=1`; disabled routes return 404. Application PR #135 and documentation PR #45 remain draft/unmerged, so this page does not imply those changes are already released on `main`.
 
 <Warning>
-The current frozen bridge connects on Live 12.4.15 with Max 9.2.0, but native qualification of its new unknown-result recovery is pending. Earlier edit/inverse evidence belongs to a different build. Use the current device in Guide mode until native recovery checks pass. Use a disposable, saved working Set. A successful HTTP response can mean a command was queued, not that Live applied it. Confirm the command outcome before proceeding.
+The current frozen bridge connects on Live 12.4.15 with Max 9.2.0, but native qualification of its new unknown-result recovery is pending. Earlier edit/inverse evidence belongs to a different build. Use Guide for the current Live device until native recovery checks pass. This is an operator recommendation, not a separate runtime write lock; copied-audio qualification does not qualify the bridge. Use a disposable, saved working Set. A successful HTTP response can mean a command was queued, not that Live applied it. Confirm the command outcome before proceeding.
 </Warning>
 
 ## Local access
@@ -49,7 +49,7 @@ curl http://localhost:8420/api/studio/capabilities
 curl http://localhost:8420/api/studio/sessions
 ```
 
-Capabilities identify the planner as `deterministic_parameter_v1`, advertise all four modes, and limit editable device classes to `StereoGain` (Utility). A plan has one action; its runtime cannot exceed 120 seconds. Automatic save-copy, rendering and cloud inference are unavailable.
+Capabilities identify the planner as `deterministic_parameter_v1`, advertise all four modes, and limit editable device classes to `StereoGain` (Utility). A plan has one action; its runtime cannot exceed 120 seconds. Automatic Live save-copy/rendering and Studio cloud inference are unavailable. Copied-audio rendering has a separate capability and qualification boundary below.
 
 Session detail includes:
 
@@ -159,6 +159,52 @@ Send `POST /sessions/{session_id}/rollback` with `expected_revision` and `checkp
 
 Only the latest eligible confirmed checkpoint in the current epoch can be inverted. Its expected value is the acknowledged post-edit value, and its requested value is the recorded pre-edit value. Detected target or value interference prevents restoration. An inverse appends history rather than deleting the original checkpoint.
 
+## Copied-audio workspaces
+
+The `/api/studio/audio` namespace has independent workspace policy and selected-head revisions. It does not reuse Live epochs, grants or rollback authority. It preserves exact imported WAV bytes, per-channel measurements and immutable retained evidence. The normal UI/API/codec workflow has passed isolated qualification for the tested Mac/Colima/image/asset-root combination; no backend configuration was installed or deployed by that test.
+
+### Runtime eligibility
+
+`GET /api/studio/audio/capabilities` advertises `automatic_asset_render` only for a normal-mode runtime with a deliberately accepted qualification binding, matching reviewed manifest hash, current identity/preflight checks and completed recovery. The binding pins the exact normal profile, image/source, daemon, kernel, seccomp, asset root/device and capability version. Missing/stale evidence or drift blocks admission. Temporary capacity and an unresolved worker are not permission to widen the profile.
+
+`qualification: true` and internal developer qualification sessions always advertise product capabilities false. A local profile, injected `qualified` boolean or successful preflight is not acceptance. Operator configuration uses `MLX_AUDIOGEN_STUDIO_AUDIO_PROFILE` with the closed `profile` and `qualification_binding` objects; optional `MLX_AUDIOGEN_STUDIO_AUDIO_ROOT` must match the accepted root/device. These are trusted local startup inputs, never HTTP fields. No request installs Docker, builds/pulls an image or mints a qualification receipt. See the [operator prerequisites](/integrations/studio-agent#work-with-copied-audio) and the matching checkout's qualification matrix.
+
+`automatic_live_capture`, `automatic_live_render`, `automatic_save_copy` and `automatic_live_apply` remain false. No Studio model/cloud request or musical-quality evaluation follows from audio enablement.
+
+### Closed operation flow
+
+Use the following groups rather than the Live `/sessions` endpoints. All paths in this list are relative to `/api/studio/audio`:
+
+- `GET /workspaces`, `POST /workspaces`, `GET /workspaces/{workspace_id}` and `PUT /workspaces/{workspace_id}/policy` inspect/create the workspace and update its revision-checked policy.
+- `POST /workspaces/{workspace_id}/imports`, `/runs`, `/comparisons` or `/selections` creates one exact proposal for `import`, `candidate`, `comparison` or `selection`; proposal responses are HTTP 201.
+- Import execution is one raw `PUT /workspaces/{workspace_id}/operations/{operation_id}/body` with `Content-Type: audio/wav`. Other kinds use `POST .../execute`. Both return HTTP 202 and an Operation after durable admission/handoff. Neither status promises completion.
+- `GET .../operations/{operation_id}` reads status when granted. `POST .../cancel` uses `expected_operation_digest`, returns HTTP 202, and requests cancellation without claiming confirmed exit. Stop polling when hidden, cancelled, terminal or expired; never renew a deadline or automatically replay an effect after transport loss.
+- Workspace `/assets`, `/operations` and `/history` retain discoverable evidence. Asset/operation pages contain at most 50 items and an opaque `next_cursor`; history retains up to its bounded 500-entry budget. `/assets/{asset_id}`, `/assets/{asset_id}/content` and `/comparisons/{comparison_id}` expose owned metadata, verified WAV content and comparison facts under their read grants.
+
+IDs must belong to the URL workspace. No URL/path input, arbitrary codec options, cloud credential or generic tool dispatcher is accepted. JSON keeps its existing 1 MiB bound; the raw import stream has its own guards and limits before body reads.
+
+An import proposal binds `request_key`, `expected_policy_revision`, `expected_head`, `declared_sha256`, `declared_bytes` and bounded provenance. The body must be the exact approved bytes: WAV PCM16/24/32 or FLOAT, mono/stereo, 8–96 kHz, nonempty through 120 seconds and at most 100 MiB. A body is durably claimed once. Repeated bodies are rejected before reads; an interrupted stream needs a new authorized proposal/key. Identical proposal retries return the original operation; a changed proposal under the same key conflicts. Request keys contain 1–128 ASCII letters, digits, underscores or hyphens.
+
+Collaborate execution echoes the exact approved digest: `approval_digest` in the execute body, or one `X-Studio-Approval-Digest` header for raw PUT. Other modes still need their saved independent grants. Proposal approval includes source hashes/length, objective, expected head/revisions, budget/deadline and the returned `output_scope`; preserve these values instead of reconstructing their digest.
+
+### Authority, evaluation and selection
+
+The four audio grants are `import_analyze`, `audition`, `create_candidate` and `select_asset`; all default false. Guide can import/analyze and audition with those grants but cannot create candidates or select. Agent and Full Auto candidates require a saved matching source/objective grant, 1–8 finite attempts and an expiry at most 120 seconds ahead. A consumed attempt or expired grant does not renew on refresh, retry or execution. New authority requires explicit operator action. Changing mode grants nothing.
+
+`sample_peak_ceiling_v1` takes an explicit `ceiling_dbfs` and `minimum_gain_db`, both in [-60, 0]; no production target is chosen for you. Rendered candidates require candidate and audition grants because the same operation creates FLOAT evidence plus its common PCM24 A/B pair. `select_on_accept` additionally requires selection authority. The returned v2 output scope binds those outputs and full equal windows before approval. Already-satisfied, unsupported or no-safe-candidate outcomes create no candidate. Encoded sample-peak acceptance is separate from selection and from musical preference; measurements are not LUFS or true peak.
+
+Standalone comparison proposals bind both asset IDs/hashes, explicit equal-length source-frame windows and `common` or `rms_matched`. Matching only attenuates the louder aggregate RMS; no boost or per-channel gain is allowed. Separately hashed PCM24 derivatives are audition-only. Playback starts paused; browser resampling is disclosed and never becomes evidence measurement.
+
+Selection/restore binds target hash and the expected selected head/revision. Initial selection chooses an imported source; later selection requires an accepted candidate. Restore names a retained predecessor selection event. It appends history and performs no inverse DSP, Live mutation or deletion. A head conflict can leave accepted evidence unselected. Policy revocation cancels pending authority; it does not erase historical evidence or pretend that already committed effects were undone.
+
+Metadata/content reads are independent of selection authority: source/candidate evidence and operation/selection history need import/analysis permission; derivatives and comparisons need audition permission. A selection-only client may submit known retained IDs/hash and read the current workspace head, but cannot fetch forbidden operation/history/content reads. A changed head alone does not prove that operation's outcome; report detailed outcome unavailable when read authority is absent or revoked.
+
+Public `expires_at` values are timezone-qualified RFC3339, canonicalized to UTC with exactly six fractional digits and `Z`; input accepts at most six fractional digits. Echo an existing deadline exactly. Internal identity uses integer microseconds, not a newly derived floating timestamp. Queue/setup/work consume the original deadline. Upload is bounded to 60 seconds, compute to 120 seconds, with one active compute worker and at most two queued operations; ambiguous termination retains ownership and capacity.
+
+Audio errors add nullable `operation_id` inside the existing `error` envelope. Check `error.code`: examples include `policy_denied`, `approval_required`, `stale_revision`, `body_claimed`, `selection_conflict`, `content_mismatch`, `capacity_exhausted`, `worker_blocked` and `storage_unavailable`. HTTP 503 here does not necessarily mean a Live bridge is offline. Inspect durable state after uncertain delivery; stopping a local HTTP request is not a server cancellation or a retry authorization.
+
+The matching prototype checkout's `specs/00002-studio-audio-candidates/contracts/openapi.yaml` and `specs/00002-studio-audio-candidates/contracts/semantics.md` define the full closed fields and bounds. Local audio recovery/selection never clears Live UNKNOWN; every automatic Live capability remains unavailable.
+
 ## Bridge protocol
 
 Use the supplied Max/Node bridge for Live control. A custom bridge must preserve these boundaries:
@@ -194,6 +240,8 @@ Errors use this envelope:
 | 409 | Stale revision/plan, conflicting replay, busy bridge or unknown result | Refresh state; inspect an unknown outcome only while available, then reconnect and re-enroll before any later write. |
 | 429 | Action/time/history budget unavailable | Inspect limits; do not retry a dispatched action. |
 | 503 | Bridge offline | Reconnect in Max to create a fresh session. Historical outcomes remain in their old sessions; inspection of an ended generation is unavailable. |
+
+Direct local Studio requests are exempt from the server-wide IP rate limiter. The Studio budget errors above use the `error.code` envelope. Forwarded or proxied requests are unsupported and rejected by the local-access guard.
 
 History is limited to 500 logical journal entries or 16 MiB of canonical history per session. Admission reserves capacity for the command's complete outcome and recovery records before dispatch. Later evidence uses that reservation; old history is not silently evicted. The limit excludes SQLite page and journal-file overhead.
 
