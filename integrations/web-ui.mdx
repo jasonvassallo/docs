@@ -98,6 +98,8 @@ The opt-in **Studio** tab connects to a saved Ableton working copy for one expli
 
     Click **`[⤢ Expand]`** to fill the viewport with the player — the spectrogram canvas grows from its default 56-pixel height to the full window so frequency detail is much more readable. Press `Esc` or click `[⤡ Collapse]` to return to the inline view.
 
+    Note overlays load once for the current clip and remain cached when you switch views. Switching clips clears the old overlay so delayed results cannot appear on the new audio.
+
     Settings persist across sessions via IndexedDB — your preferred view mode, palette, sensitivity, and channel mode are restored automatically next time you open the UI.
   </Accordion>
 
@@ -106,7 +108,13 @@ The opt-in **Studio** tab connects to a saved Ableton working copy for one expli
   </Accordion>
 
   <Accordion title="Generation history">
+    If deleting an entry fails, it remains available for playback so you can retry.
+
     Every generation is saved to IndexedDB in your browser. The history panel shows all past generations with waveform thumbnails, prompt text, and timestamps. You can mark items as favorites to pin them, set an auto-delete retention period to keep your history manageable, and download any generation as a MIDI file.
+  </Accordion>
+
+  <Accordion title="Training status and recovery">
+    While training is running, temporary connection errors show a retry message and keep **Stop Training** available. Polling resumes automatically when the server responds again. A completed or missing job ends status polling.
   </Accordion>
 
   <Accordion title="Stem separation">
