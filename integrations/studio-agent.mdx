@@ -8,7 +8,7 @@ keywords: ["Studio Agent", "Ableton Live", "Max for Live", "Utility", "local con
 Studio Agent connects the web UI to a live Ableton Set through a separate Max for Live bridge. You choose an existing Utility parameter and a numeric target, preview the change, then authorize one operation. The bridge checks the target again and reports the value it reads back from Live.
 
 <Warning>
-Studio Agent is an opt-in prototype. Native Live qualification and genuine `.amxd` export are still pending. The setup below is provisional until both are verified. Start with a disposable, saved working copy. The bridge does not create a backup, save a copy, or verify that your original Set is protected.
+Studio Agent is an opt-in prototype. The supplied frozen device was qualified with Ableton Live 12.4.15 and Max 9.2.0 on a disposable Set: inventory, one Utility Balance edit, conditional inverse, reconnect and full Set reload. Start with a disposable, saved working copy. The bridge does not create a backup, save a copy, or verify that your original Set is protected.
 </Warning>
 
 ## What you can control
@@ -47,20 +47,20 @@ You need Apple Silicon macOS, Ableton Live with Max for Live, and a checkout of 
     If you already use the normal application launcher, set the same variable before starting it. Studio itself does not load models; the normal launcher can still preload your configured generation models.
   </Step>
 
-  <Step title="Prepare the bridge sources; native packaging is pending">
-    The repository includes `m4l/studio-agent.maxproj`, `studio-agent.maxpat`, `studio-agent-live.js` and `studio-agent-node.js`. These are source files, not a qualified Max for Live device.
+  <Step title="Load the supplied frozen Studio device">
+    Load `m4l/studio-agent.amxd` onto a normal audio track. This genuine Max Audio Effect includes both JavaScript dependencies. It is separate from the existing audio-generation device.
 
-    A genuine Audio Effect `.amxd` with both JavaScript dependencies included is required before you continue. Its native export and freeze procedure has not been verified; **Export Max for Live Device** was unavailable during the current qualification attempt. Changing the `.maxpat` filename to `.amxd` does not build a device.
-
-    Continue to the connection steps only after native packaging, CPU-clock readiness and copied-Set qualification have been completed for the current sources. The existing audio-generation device uses a different script and cannot substitute for the Studio bridge.
+    Editable sources are also supplied in `m4l/studio-agent.maxproj`. After changing bridge code, rebuild and freeze the device in Max, save it, and repeat disposable-Set qualification before using it.
   </Step>
 
   <Step title="Prepare and connect a working copy">
     Save a separate working copy of your Set in Live and open that copy. Pause the transport, add Utility to a normal track, and load the exported Studio Audio Effect.
 
-    The device connects automatically. In the device, click **Confirm this is a saved working copy**. This is your assertion about the open Set, not a filesystem check or a backup operation.
+    The device connects to local port `8420` by default. For another backend port, set **Local server port** at the bottom of the Studio device in Live; this control is not in Live Settings. Native qualification used isolated port `8429`.
 
-    Use **Refresh inventory** after changing the Set's devices or controls. Reloading the device or reconnecting clears confirmation and makes earlier plans invalid.
+    Once connected, click **Confirm this is a saved working copy**. This is your assertion about the open Set, not a filesystem check or a backup operation.
+
+    Use **Refresh inventory** after changing the Set's devices or controls. Reloading the device or reconnecting clears confirmation and makes earlier plans invalid. A full reload also restores the default port; select your test port again before reconnecting.
   </Step>
 </Steps>
 
@@ -99,7 +99,7 @@ To recover:
 
 1. Inspect the parameter and decide what state you want to keep. A read-only reconciliation can record an observation; it does not clear the write block.
 2. In Max, click **Reconnect / disarm** to establish a fresh connection generation.
-3. Confirm the saved working copy again, refresh inventory, and choose fresh permissions and a new plan in Studio.
+3. If Node alone restarted, reload the entire Studio device first. Confirm the saved working copy again, refresh inventory, and choose fresh permissions and a new plan in Studio.
 
 The old unknown result remains in history. Studio never automatically retries an uncertain write.
 

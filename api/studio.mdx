@@ -7,7 +7,7 @@ keywords: ["Studio API", "Ableton", "parameter control", "idempotency", "Max bri
 The Studio API exposes the local parameter-control prototype described in the [Studio Agent guide](/integrations/studio-agent). Enable it with `MLX_AUDIOGEN_STUDIO_ENABLED=1`. The base URL is `http://localhost:8420/api/studio`; disabled routes return 404.
 
 <Warning>
-Native Live qualification is still in progress. Use a disposable, saved working Set. A successful HTTP response can mean a command was queued, not that Live applied it. Confirm the command outcome before proceeding.
+The supplied frozen device passed a bounded Utility edit/inverse and authority-reset check on Live 12.4.15 with Max 9.2.0. Other Live/Max versions and wider musical workflows remain unqualified. Use a disposable, saved working Set. A successful HTTP response can mean a command was queued, not that Live applied it. Confirm the command outcome before proceeding.
 </Warning>
 
 ## Local access
