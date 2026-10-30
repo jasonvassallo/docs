@@ -148,7 +148,7 @@ The copied-audio increment has passed isolated normal UI/API/codec qualification
   <Step title="Set one explicit technical goal">
     Choose retained source evidence and enter both **Sample-peak ceiling (dBFS)** and **Minimum allowed gain (dB)**. The UI supplies no production target. Both values are between -60 and 0; the permitted gain interval ends at 0 dB.
 
-    Guide cannot create candidates or select. Collaborate requires approval of the exact proposal. Agent and Full Auto require a saved grant for this source and goal with finite attempts and a deadline. **Prepare new objective grant** is an explicit new authorization; refreshing never renews a grant or restores spent attempts.
+    Guide cannot create candidates or select. A rendered candidate needs both **Create candidates** and **Create and listen to A/B**, because the same operation produces its A/B pair. Selecting on acceptance also needs **Select and restore**. Collaborate requires approval of the exact proposal. Agent and Full Auto require a saved grant for this source and goal with finite attempts and a deadline. **Prepare new objective grant** is an explicit new authorization; refreshing never renews a grant or restores spent attempts.
 
     A rendered candidate applies one constant attenuation across channels, preserves frames/rate/layout, writes a new FLOAT WAV and evaluates its reopened encoded samples. The same operation produces a common-attenuation PCM24 A/B pair. Already-satisfied or unattainable goals render nothing. Technical acceptance does not select the result unless separately authorized selection was requested and its head check succeeds.
   </Step>
