@@ -26,10 +26,10 @@ The `/docs` path is reserved for this user documentation site, so Swagger UI liv
 
 No authentication is required for local use. CORS is enabled for all origins, so browser-based clients (including the bundled web UI and Max for Live) can call the API directly.
 
-The opt-in [Studio API](/api/studio) has separate restrictions: direct loopback access, exact local browser origins, and an ephemeral credential for bridge requests. Its control endpoints are unavailable through remote connections or tunnels.
+The opt-in [Studio API](/api/studio) checks for direct loopback access, a local Host and exact local browser origins, rejects proxy metadata, and requires an ephemeral credential for bridge requests. Do not expose Studio through a proxy or tunnel: a proxy that strips forwarding metadata cannot be distinguished from a direct native client.
 
 <Warning>
-If you expose the server on `0.0.0.0` for remote access, the API has no built-in authentication. Use a reverse proxy with auth, or rely on network-level controls, before exposing the server externally.
+If you expose the server on `0.0.0.0` for remote access, the API has no built-in authentication. Leave `MLX_AUDIOGEN_STUDIO_ENABLED` unset to keep Studio disabled. Use a reverse proxy with auth, or rely on network-level controls, before exposing the server externally.
 </Warning>
 
 ## Rate limits
