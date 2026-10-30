@@ -1,0 +1,191 @@
+---
+title: "Use Studio Agent for Live control and copied audio"
+sidebarTitle: "Studio Agent"
+description: "Use the opt-in Studio prototype for guarded Live parameter control or qualified copied-WAV measurement, bounded candidates and paused A/B."
+keywords: ["Studio Agent", "Ableton Live", "Max for Live", "copied audio", "sample peak", "A/B"]
+---
+
+Studio opens in **Live control** by default. That view connects to a live Ableton Set through a separate Max for Live bridge: you preview one numeric Utility parameter change, authorize it, and read its reported outcome. The separate **Copied audio** view preserves WAV evidence and, with a qualified local runtime, creates one bounded sample-peak candidate, paused A/B comparisons and guarded selection history. Copied audio needs no Live connection.
+
+<Note>
+These sections require a source build containing both Studio workflows and its matching rebuilt web UI. Packaged builds may have different availability; check the configured runtime capabilities before execution. The wider musical-agent workflow is unfinished.
+</Note>
+
+<Warning>
+Studio Agent is an opt-in prototype. The supplied frozen bridge has passed bounded native unknown-result recovery qualification with Live 12.4.15 and Max 9.2.0 on a paused, disposable Set. Qualification is limited to the device and recovery path described below; it does not establish release readiness or completion of the wider musical-agent workflow. Copied-audio qualification is a separate boundary. Start with a disposable, saved working copy; the bridge does not create a backup, save a copy, or verify that your original Set is protected.
+</Warning>
+
+<Accordion title="Native qualification scope">
+  The 2026-10-29 qualification covers the 64,352-byte frozen `m4l/studio-agent.amxd` with SHA-256 `666fbe6763b71500d8f185899320c01217755c773d7570aca4bba338d0895f05`, using Live 12.4.15 and Max 9.2.0. Changes to the frozen device require renewed qualification.
+
+  A controlled qualification clock made the server retain an **unknown** outcome after the device applied one Utility Balance change. Read-only inspection on the healthy original connection returned the current value without a checkpoint or another write. Physical working-copy reconfirmation and a fresh valid plan with newly saved edit permissions both failed to unlock that connection. Stop ended inspection availability.
+
+  A fresh connection began in Guide with copy confirmation and edit permission cleared. Fresh physical confirmation, explicit permissions and a newly approved plan then restored Balance through an independent confirmed edit. The uncertain operations remained unknown. This recovery did not replay those operations or exercise checkpoint inverse restoration for this device. The native run used controlled server expiry; additional fault boundaries have deterministic test coverage, rather than additional native qualification.
+</Accordion>
+
+## What you can control
+
+The first version supports enabled, continuous, non-automated controls on Ableton's **Utility** device (`StereoGain` in the Live API). Parameters, values and ranges come from the connected device. Keep Live's transport paused while planning or applying changes.
+
+Inventory covers normal tracks and their top-level devices. Other device classes are read-only. Clips, devices inside racks, return tracks, the master track, third-party plugins and hardware control are outside this version. An incomplete inventory disables editing.
+
+Each plan contains one parameter change, with a runtime limit of 5–120 seconds. The default is 60 seconds. Readback confirms a numeric result; it does not judge the sound or interpret an instruction such as “make this warmer.” The Live parameter path does not render or create audio A/B. Qualified copied-audio work is described below. Neither Studio path calls a local or cloud model or downloads weights.
+
+## Start Studio locally
+
+You need Apple Silicon macOS, Ableton Live with Max for Live, and a source checkout of mlx-audiogen that includes the Studio prototype. Build the web UI from that same checkout; a packaged application or older UI may not include Studio. Follow [installation](/installation) for the repository prerequisites.
+
+<Steps>
+  <Step title="Install the server dependencies and build the web UI">
+    From the mlx-audiogen repository:
+
+    ```bash
+    uv sync --extra server
+    npm --prefix web ci
+    npm --prefix web run build
+    ```
+  </Step>
+
+  <Step title="Enable Studio and start the server">
+    This Studio-only command starts the local service without preloading generation weights:
+
+    ```bash
+    MLX_AUDIOGEN_STUDIO_ENABLED=1 uv run uvicorn mlx_audiogen.server.app:app \
+      --host 127.0.0.1 --port 8420
+    ```
+
+    Open `http://localhost:8420` and select the **Studio** tab. The Max device defaults to `127.0.0.1:8420`; if you use another backend port, set the same port on the device as described below. Studio endpoints are unavailable unless the enablement variable is exactly `1`.
+
+    If you already use the normal application launcher, set the same variable before starting it. Studio itself does not load models; the normal launcher can still preload your configured generation models.
+  </Step>
+
+  <Step title="Locate the supplied frozen Studio device">
+    The supplied device is `m4l/studio-agent.amxd`. Load it only after opening a separate saved working copy in the next step. This genuine frozen Max Audio Effect includes both JavaScript dependencies and is separate from the existing audio-generation device. Its bounded native recovery qualification is described above; all mode, permission and working-copy checks still apply.
+
+    Editable sources are also supplied in `m4l/studio-agent.maxproj`. After changing bridge code, rebuild and freeze the device in Max, save it, and repeat disposable-Set qualification before using it.
+  </Step>
+
+  <Step title="Prepare and connect a working copy">
+    Save a separate working copy of your Set in Live and open that copy. Pause the transport, add **Utility** to a normal track, and load the supplied Studio device (`m4l/studio-agent.amxd`).
+
+    The device connects to local port `8420` by default. For another backend port, set **Local server port** at the bottom of the Studio device in Live; this control is not in Live Settings. Use the same port for the backend and the device.
+
+    Once connected, click **Confirm this is a saved working copy**. This is your assertion about the open Set, not a filesystem check or a backup operation.
+
+    Use **Refresh inventory** after changing the Set's devices or controls. Reloading the device or reconnecting clears confirmation and makes earlier plans invalid. A full reload also restores the default port; select your configured port again before reconnecting.
+  </Step>
+</Steps>
+
+<Note>
+Studio is local-only even if other mlx-audiogen features use a remote server. Use a direct local connection; do not expose Studio through a tunnel or proxy. For web development, the repository's Vite server uses port `3000`; the backend and bridge default to `8420`; use the same configured port for both.
+</Note>
+
+## Preview and apply a change
+
+1. Select the connected **Ableton session** in **Studio**. Check that the bridge is connected, the working copy is confirmed, and transport is paused.
+2. Choose an **Interaction mode**, enable **Allow parameter edits** when you want to write, set the **Runtime limit**, and save the settings.
+3. Select a track, its Utility device, and a supported parameter. Enter a **Target value** within the displayed range. These are Live's native parameter units, which may differ from the unit shown on a device dial.
+4. Create a preview and check the exact target and old/new values. In Collaborate mode, approve that preview before executing it.
+5. Read the result in the operation history. **Applied** means the bridge returned a matching command acknowledgement and readback. A queued or dispatched command is not yet a confirmed edit.
+
+Changing the mode, permissions, inventory or target can invalidate a preview. Refresh the session and create a new plan instead of reusing an earlier approval.
+
+## Choose an interaction mode
+
+| Mode | Behavior in this prototype |
+|---|---|
+| **Guide** | Inspect the Set and preview a parameter goal. Cannot write. |
+| **Collaborate** | Apply one permitted change after you approve its exact preview. |
+| **Agent** | Execute your selected numeric goal within the saved permissions and runtime limit. |
+| **Full Auto** | Use the same bounded executor for the selected one-action goal. Does not add permissions or broader musical planning. |
+
+All writing modes require a confirmed working copy, a supported target, an explicit edit permission, fresh state and a paused transport. Selecting Full Auto does not grant any of those permissions.
+
+## Stop and recover
+
+**Stop** prevents a queued command from being sent. If the bridge already received the command, stopping cannot prove that Live remained unchanged: the outcome becomes **unknown**. Stop does not undo a change.
+
+A lost acknowledgement, disconnect, timeout or interrupted write can leave an unknown outcome. Studio retains that history and blocks further writes. If the original connection is still healthy, the bridge enters a read-only quarantine: **Inspect current value** can read the original control when the UI marks inspection available. That observation does not confirm the uncertain edit, create a checkpoint, or restore permission to write, even when the value matches the requested value. Confirming the working copy again cannot unlock that connection.
+
+Stop, a failed quarantine handshake, a hard disconnect, or a Set/device reload ends the original connection. Inspection of that historical command then becomes unavailable; a new connection cannot reuse its old object IDs. The UI explains why inspection is unavailable instead of offering a write retry.
+
+To recover:
+
+1. If inspection is available, inspect the original control and decide what state you want to keep. If it is unavailable, inspect the current state directly in Live. Neither step clears the old unknown result.
+2. If Node alone restarted, reload the entire Studio device before reconnecting. A full reload resets **Local server port** to `8420`; select your configured port again when needed.
+3. In Max, click **Reconnect / disarm** to establish a fresh connection generation. It creates a new Studio session ID for the connection, not a new saved Live Set. Select that connected record in the **Ableton session** control. The old session retains its history.
+4. Confirm the saved working copy again on the Max device, refresh inventory, then save fresh permissions and create a new plan in Studio. This step is required for every recovery, whether or not Node restarted.
+
+Studio never automatically retries an uncertain write. Old unknown outcomes remain unknown in their original sessions.
+
+## Restore a confirmed edit
+
+For an eligible confirmed checkpoint in the current connection, request a restore preview. It proposes a new inverse operation through the same permission and approval checks. Reconnecting creates a new session: earlier checkpoints remain history-only and cannot be restored through that new connection.
+
+The inverse expects the parameter to match the value acknowledged after the original edit. If Studio detects a changed target or an intervening value change, it refuses restoration. It never calls Live's global Undo command. Live does not provide an atomic comparison-and-write against simultaneous human edits, so avoid adjusting the target while an operation is in flight.
+
+A checkpoint records a parameter operation. It is not a saved Live Set or a complete project snapshot, and an unknown operation has no automatic inverse.
+
+## Work with copied audio
+
+The copied-audio increment has passed isolated normal UI/API/codec qualification for the tested Mac, Colima runtime, worker image and asset root. That evidence does not install or deploy a backend on your machine. Studio enablement alone does not activate copied-audio execution: your local runtime must have accepted qualification for its exact configuration. Read its advertised capability and any blocked reason before proceeding.
+
+<Steps>
+  <Step title="Open an independent audio workspace">
+    Select **Studio → Copied audio** and create or choose an audio workspace. **Live control** remains the default view. An audio workspace has its own permissions, head revision and history; it does not inherit authority from a Live session.
+
+    Save each permission separately: **Import and analyze**, **Create and listen to A/B**, **Create candidates**, and **Select and restore**. New workspaces deny all four. Changing the mode grants nothing. Selection permission alone does not grant history, measurement or content reads.
+  </Step>
+
+  <Step title="Preserve and inspect a WAV">
+    Choose a WAV and provide its label and source attestation, then **Prepare import**. Studio hashes the selected file before proposing its exact bytes. In Collaborate, approve that proposal before execution.
+
+    Supported input is PCM16/24/32 or FLOAT WAV, mono or stereo, 8–96 kHz, nonempty and no longer than 120 seconds, at most 100 MiB. Original bytes remain immutable. Operator Live exports are your attestation about the source, region and settings, not verified automatic capture.
+
+    Read the per-channel sample peak, RMS, DC and full/over-scale counts. Silence and anti-phase stereo remain visible. These are sample-peak/RMS dBFS measurements, not LUFS, true peak, clipping repair or musical judgment.
+  </Step>
+
+  <Step title="Set one explicit technical goal">
+    Choose retained source evidence and enter both **Sample-peak ceiling (dBFS)** and **Minimum allowed gain (dB)**. The UI supplies no production target. Both values are between -60 and 0; the permitted gain interval ends at 0 dB.
+
+    Guide cannot create candidates or select. A rendered candidate needs both **Create candidates** and **Create and listen to A/B**, because the same operation produces its A/B pair. Selecting on acceptance also needs **Select and restore**. Collaborate requires approval of the exact proposal. Agent and Full Auto require a saved grant for this source and goal with finite attempts and a deadline. **Prepare new objective grant** is an explicit new authorization; refreshing never renews a grant or restores spent attempts.
+
+    A rendered candidate applies one constant attenuation across channels, preserves frames/rate/layout, writes a new FLOAT WAV and evaluates its reopened encoded samples. The same operation produces a common-attenuation PCM24 A/B pair. Already-satisfied or unattainable goals render nothing. Technical acceptance does not select the result unless separately authorized selection was requested and its head check succeeds.
+  </Step>
+
+  <Step title="Compare and select retained evidence">
+    **Load retained A/B** starts paused at conservative volume. Press **Play audition** explicitly, use **A** and **B** at the same position, and read the source/context rate and resampling disclosure. Playback is not measurement of the original.
+
+    For a new standalone comparison, choose two compatible retained assets, explicit start frames and an equal frame count. Choose original relative levels with common attenuation, or RMS matching that only attenuates the louder side. This comparison does not spend a candidate attempt or select a head.
+
+    Selection checks current source hashes, selected head and revision. Restore names a retained predecessor and appends history; it neither reverses DSP nor deletes evidence. A conflict preserves the existing head. Local selection never applies audio to Live, resolves a Live UNKNOWN or performs Live rollback.
+  </Step>
+</Steps>
+
+A queued/admitted reply is not completion. Follow durable operation status, evaluation and selection separately. Stopping a local request does not prove that server work stopped; refresh retained evidence before a new action when delivery is uncertain. Explicit cancellation still needs its recorded terminal outcome. If you have selection permission without read permission, the UI can refresh the allowed workspace head and reports the detailed outcome as unavailable; a changed head alone does not prove that operation's outcome.
+
+<Accordion title="Operator: enable a qualified copied-audio runtime">
+  Use the existing local worker runtime only after deliberate qualification and acceptance. `MLX_AUDIOGEN_STUDIO_AUDIO_PROFILE` names a closed operator-local configuration containing `profile` and `qualification_binding`. Normal operation needs an accepted binding for the exact normal profile, worker image/source, daemon, kernel, seccomp, asset root/device and capability version, plus a reviewed manifest pinned by its hash and current preflight/recovery readiness. `MLX_AUDIOGEN_STUDIO_AUDIO_ROOT`, if set, must match the qualified root.
+
+  A profile file, successful preflight or edited qualification boolean does not establish acceptance. `qualification: true` is a controlled developer mode and always advertises product capabilities false. Do not manufacture a passed record or flip a capability flag. Requests never install Docker, build/pull images or issue qualification.
+
+  Your integrator must supply and accept that configuration for your actual local runtime. The source checkout's `specs/00002-studio-audio-candidates/qualification.md` and `specs/00002-studio-audio-candidates/evidence/runtime-qualification-clarification.md` define the qualification and acceptance procedure. Use `/api/studio/audio/capabilities` for the configured runtime's current support; a blocked runtime requires investigation, not permission or resource-limit bypasses.
+</Accordion>
+
+Automatic Live capture, render, Save Copy and apply remain unavailable, as do Studio local/cloud inference, musical judgment and multi-action DAW workflows. Export fresh Live evidence manually when requested. The bounded frozen-bridge recovery qualification and copied-audio qualification cover separate workflows.
+
+## Storage and troubleshooting
+
+Studio stores its operation history in `~/.mlx-audiogen/studio.sqlite3`. Set `MLX_AUDIOGEN_STUDIO_DB` before startup if you need a different database location. The bridge credential stays in memory and is not a user-managed API key.
+
+| Symptom | Next step |
+|---|---|
+| Studio is unavailable or its API returns 404 | Restart the backend with `MLX_AUDIOGEN_STUDIO_ENABLED=1` using a version that includes Studio. |
+| No connected session | Check that the device is loaded and the backend listens on `127.0.0.1` at the port set in **Local server port** (default `8420`). After a full reload, select your configured port again. |
+| Editing is disabled | Pause transport; confirm the copy on Max; enable edits; select an enabled, continuous, non-automated Utility parameter. |
+| Inventory is incomplete | Reduce the working Set to a smaller supported fixture and refresh. Caps are 64 tracks, 256 devices, 2,048 parameters and 1 MiB per inventory. |
+| Preview is stale | Refresh the session and create a new preview. |
+| Outcome is unknown | Inspect only while the original connection is available; then follow the recovery steps above. Reconfirmation alone cannot unlock quarantine. Do not replay the old command. |
+| Session history is full | Reconnect to create a new session ID, select it in Studio, and complete fresh enrollment. The old session retains its history; the logical limit is 500 entries or 16 MiB per session. |
+
+For request formats and client integration rules, see the [Studio API](/api/studio).

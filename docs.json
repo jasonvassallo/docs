@@ -48,7 +48,8 @@
             "pages": [
               "integrations/web-ui",
               "integrations/vst-au-plugin",
-              "integrations/max-for-live"
+              "integrations/max-for-live",
+              "integrations/studio-agent"
             ]
           },
           {
@@ -73,7 +74,8 @@
               "api/prompts",
               "api/presets",
               "api/stems",
-              "api/library"
+              "api/library",
+              "api/studio"
             ]
           }
         ]
