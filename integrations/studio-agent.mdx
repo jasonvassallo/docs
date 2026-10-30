@@ -12,8 +12,16 @@ These sections require a source build containing both Studio workflows and its m
 </Note>
 
 <Warning>
-Studio Agent is an opt-in prototype. The current frozen bridge connects with Live 12.4.15 and Max 9.2.0, but its new unknown-result recovery behavior still needs native qualification. Earlier edit/inverse checks belong to a previous build and do not qualify this device. Use **Guide** for the current Live bridge until that check passes. This is operator guidance, not an added runtime write lock. Copied-audio qualification is a separate boundary. Start with a disposable, saved working copy; the bridge does not create a backup, save a copy, or verify that your original Set is protected.
+Studio Agent is an opt-in prototype. The supplied frozen bridge has passed bounded native unknown-result recovery qualification with Live 12.4.15 and Max 9.2.0 on a paused, disposable Set. Qualification is limited to the device and recovery path described below; it does not establish release readiness or completion of the wider musical-agent workflow. Copied-audio qualification is a separate boundary. Start with a disposable, saved working copy; the bridge does not create a backup, save a copy, or verify that your original Set is protected.
 </Warning>
+
+<Accordion title="Native qualification scope">
+  The 2026-10-29 qualification covers the 64,352-byte frozen `m4l/studio-agent.amxd` with SHA-256 `666fbe6763b71500d8f185899320c01217755c773d7570aca4bba338d0895f05`, using Live 12.4.15 and Max 9.2.0. Changes to the frozen device require renewed qualification.
+
+  A controlled qualification clock made the server retain an **unknown** outcome after the device applied one Utility Balance change. Read-only inspection on the healthy original connection returned the current value without a checkpoint or another write. Physical working-copy reconfirmation and a fresh valid plan with newly saved edit permissions both failed to unlock that connection. Stop ended inspection availability.
+
+  A fresh connection began in Guide with copy confirmation and edit permission cleared. Fresh physical confirmation, explicit permissions and a newly approved plan then restored Balance through an independent confirmed edit. The uncertain operations remained unknown. This recovery did not replay those operations or exercise checkpoint inverse restoration for this device. The native run used controlled server expiry; additional fault boundaries have deterministic test coverage, rather than additional native qualification.
+</Accordion>
 
 ## What you can control
 
@@ -52,7 +60,7 @@ You need Apple Silicon macOS, Ableton Live with Max for Live, and a source check
   </Step>
 
   <Step title="Locate the supplied frozen Studio device">
-    The supplied device is `m4l/studio-agent.amxd`. Load it only after opening a separate saved working copy in the next step. This genuine frozen Max Audio Effect includes both JavaScript dependencies and is separate from the existing audio-generation device. Current native recovery qualification is pending; use it for Guide inspection only until that gate passes.
+    The supplied device is `m4l/studio-agent.amxd`. Load it only after opening a separate saved working copy in the next step. This genuine frozen Max Audio Effect includes both JavaScript dependencies and is separate from the existing audio-generation device. Its bounded native recovery qualification is described above; all mode, permission and working-copy checks still apply.
 
     Editable sources are also supplied in `m4l/studio-agent.maxproj`. After changing bridge code, rebuild and freeze the device in Max, save it, and repeat disposable-Set qualification before using it.
   </Step>
@@ -164,7 +172,7 @@ A queued/admitted reply is not completion. Follow durable operation status, eval
   Your integrator must supply and accept that configuration for your actual local runtime. The source checkout's `specs/00002-studio-audio-candidates/qualification.md` and `specs/00002-studio-audio-candidates/evidence/runtime-qualification-clarification.md` define the qualification and acceptance procedure. Use `/api/studio/audio/capabilities` for the configured runtime's current support; a blocked runtime requires investigation, not permission or resource-limit bypasses.
 </Accordion>
 
-Automatic Live capture, render, Save Copy and apply remain unavailable, as do Studio cloud inference and musical judgment. Export fresh Live evidence manually when requested. Current frozen-bridge UNKNOWN/rearm checks remain pending and are not satisfied by copied-audio qualification.
+Automatic Live capture, render, Save Copy and apply remain unavailable, as do Studio local/cloud inference, musical judgment and multi-action DAW workflows. Export fresh Live evidence manually when requested. The bounded frozen-bridge recovery qualification and copied-audio qualification cover separate workflows.
 
 ## Storage and troubleshooting
 
